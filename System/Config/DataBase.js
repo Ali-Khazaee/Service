@@ -1,8 +1,8 @@
 module.exports =
 {
-  HOST: '5.160.219.219',
-  PORT: 65001,
-  DATABASE: 'BioGram2',
-  USERNAME: 'BioGram2',
-  PASSWORD: 'BioGram2555MongoDB'
+    HOST: 'ds261138.mlab.com',
+    PORT: 61138,
+    DATABASE: 'channel',
+    USERNAME: 'username',
+    PASSWORD: 'password'
 }

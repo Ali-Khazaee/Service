@@ -1,14 +1,10 @@
 {
-    "env":
-    {
-        "es6": true,
-        "node": true
-    },
-    "extends": "eslint:recommended",
+    "extends": "standard",
     "rules":
     {
         "indent": [ "error", 4 ],
-        "quotes": [ "error", "single" ],
-        "semi": [ "error", "never" ]
+        "brace-style": [ "error", "allman" ],
+        "space-before-function-paren": [ "error", "never" ],
+        "curly": [ "error", "multi-or-nest" ]
     }
 }
