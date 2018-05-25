@@ -41,7 +41,7 @@ App.use(BodyParser.json())
 // FFmpeg.setFfprobePath('./ffprobe.exe')
 
 // Default Page
-App.get('/', function(req, res)
+App.get('*', function(req, res)
 {
     res.send('')
 })

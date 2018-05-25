@@ -7,12 +7,10 @@
     "license": "Khazaee",
     "dependencies": {
         "body-parser": "^1.18.3",
-        "compression": "^1.7.2",
         "express": "^4.16.3",
         "fd-diskspace": "^1.0.0",
         "fluent-ffmpeg": "^2.1.2",
         "formidable": "^1.1.1",
-        "helmet": "^3.12.1",
         "mkdirp": "^0.5.1",
         "uuid": "^3.1.0"
     }
