@@ -1,6 +1,12 @@
+// Set Strict
 'use strict'
 
+// Set Production Environment
 process.env.NODE_ENV = 'production'
+
+//
+// Libraries
+//
 
 const Express = require('express')
 const BodyParser = require('body-parser')
@@ -11,20 +17,17 @@ const UniqueName = require('uuid/v4')
 const DiskSpace = require('fd-diskspace')
 const FFmpeg = require('fluent-ffmpeg')
 const Util = require('util')
-const Compression = require('compression')
-const HTTPS = require('https')
-const HTTP = require('http')
+
+//
+// Initial Variables
+//
 
 const App = Express()
 const Config = { PORT: 9000, PASSWORD: '12345', STORAGE: './Storage/' }
-const Options = { key: FileSystem.readFileSync('./key.key'), cert: FileSystem.readFileSync('./cert.cert') }
 
-HTTPS.createServer({ Options }, App).listen(Config.STORAGE, '0.0.0.0', function()
-{
-    console.log('Started: HTTPS')
-})
-
-App.use(Compression())
+//
+// Config
+//
 
 App.disable('x-powered-by')
 App.disable('etag')
@@ -33,14 +36,14 @@ App.use(BodyParser.urlencoded({ extended: true }))
 App.use(Express.static(Config.STORAGE))
 App.use(BodyParser.json())
 
-// For Windows
-FFmpeg.setFfmpegPath('./ffmpeg.exe')
-FFmpeg.setFfprobePath('./ffprobe.exe')
+// For Window Only
+// FFmpeg.setFfmpegPath('./ffmpeg.exe')
+// FFmpeg.setFfprobePath('./ffprobe.exe')
 
 // Default Page
 App.get('/', function(req, res)
 {
-    res.send('QQ')
+    res.send('')
 })
 
 // Upload Image
@@ -280,10 +283,10 @@ App.post('/delete', function(req, res)
 })
 
 // Start Service
-/*App.listen(Options, Config.PORT, '0.0.0.0', function()
+App.listen(Config.PORT, '0.0.0.0', function()
 {
     Analyze('OnStart', { Port: Config.PORT })
-})*/
+})
 
 //
 // Useful Function
