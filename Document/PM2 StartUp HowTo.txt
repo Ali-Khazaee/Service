@@ -1,0 +1,19 @@
+# 1
+# Execute Following Command
+pm2 startup upstart
+
+# 2
+# Then Execute Suggested Command As Root
+#
+
+# 3
+# Then Start Your Server
+pm2 start server.js
+
+# 4
+# Then Save Your Proccess
+pm2 save
+
+# Warning
+#Age Moshkeli Pish Omad Az Dastore Pain Estefade She
+pm2 startup -u nodeuser

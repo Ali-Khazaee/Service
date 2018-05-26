@@ -5,7 +5,13 @@
         "name": "Channel Upload Service",
         "script": "./App.js",
         "exec_mode": "cluster",
-        "instances": 4
+        "instances": 4,
+        "error_file": "./stderr.log",
+        "out_file": "./stdout.log",
+        "env":
+        {
+          "NODE_ENV": "production"
+        }
       }
     ]
 }
