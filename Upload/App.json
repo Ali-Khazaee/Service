@@ -1,0 +1,11 @@
+{
+    "apps":
+    [
+      {
+        "name": "Channel Upload Service",
+        "script": "./App.js",
+        "exec_mode": "cluster",
+        "instances": 4
+      }
+    ]
+}

@@ -17,6 +17,8 @@ const UniqueName = require('uuid/v4')
 const DiskSpace = require('fd-diskspace')
 const FFmpeg = require('fluent-ffmpeg')
 const Util = require('util')
+const MongoDB = require('mongodb')
+const Winston = require('winston')
 
 //
 // Initial Variables
@@ -24,10 +26,13 @@ const Util = require('util')
 
 const App = Express()
 const Config = { PORT: 9000, PASSWORD: '12345', STORAGE: './Storage/' }
+const DataBaseConfig = { HOST: 'ds261138.mlab.com', PORT: 61138, DATABASE: 'channel', USERNAME: 'username', PASSWORD: 'password' }
 
 //
 // Config
 //
+
+Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Error.log' }) ] })
 
 App.disable('x-powered-by')
 App.disable('etag')
@@ -288,18 +293,26 @@ App.listen(Config.PORT, '0.0.0.0', function()
     Analyze('OnStart', { Port: Config.PORT })
 })
 
-//
-// Useful Function
-//
-
-function Time()
-{
-    return Math.floor(Date.now() / 1000)
-}
-
+// Analyze Function
 function Analyze(Tag, Data)
 {
-    Data.CreatedTime = Time()
+    Data.Tag = Tag
+    Data.CreatedTime = Math.floor(Date.now() / 1000)
 
-    console.log(Tag + ' - ' + Util.inspect(Data, false, null))
+    MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataBaseConfig.PASSWORD + '@' + DataBaseConfig.HOST + ':' + DataBaseConfig.PORT + '/' + DataBaseConfig.DATABASE,
+        {
+            reconnectTries: Number.MAX_VALUE,
+            reconnectInterval: 2000,
+            useNewUrlParser: true
+        },
+        function(Error, DataBase)
+        {
+            if (Error)
+            {
+                Winston.warn(Data + ' - ' + Util.inspect(Error, false, null))
+                return
+            }
+
+            DataBase.db(DataBaseConfig.DataBase).collection('metric').insertOne(Data)
+        })
 }
