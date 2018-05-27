@@ -35,6 +35,44 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
         {
             Misc.Analyze('OnConnect', { IP: Socket.request.connection.remoteAddress })
 
+            /**
+             * @api
+             * SendMessage - API Sending Message
+             *
+             * @param
+             * {stream} Stream - The stream from client
+             *
+             * {JSON} Data - The data is a valid JSON
+             * {
+             *     {MongoID} To - The Reciever
+             *     {int} MessageType - The message type
+             *     {
+             *         TEXT: 0,
+             *         VIDEO: 1,
+             *         IMAGE: 2,
+             *         GIF: 3,
+             *         FILE: 4,
+             *         VOTE: 5
+             *     }
+             *     {string} Message - The message
+             *     {
+             *         it must be lower than 4096 characters,
+             *         if type is != 0 then it can be empty
+             *     }
+             * }
+             *
+             * {function} CallBack - Return the result to the client
+             *
+             * @return {string} Result - The result is JSON
+             * {
+             *     0: Success
+             *     1: Fail - Data is invalid JSON
+             *     2: Fail - Data is wrong
+             *     3: Fail - Message is empty
+             *     4: Fail - To doesn't exist
+             * }
+             *
+             */
             IOStream(Socket).on('SendMessage', async function(Stream, Data, CallBack)
             {
                 if (Misc.IsValidJSON(Data))
