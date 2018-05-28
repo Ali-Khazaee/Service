@@ -1,4 +1,12 @@
+// Set Strict
 'use strict'
+
+// Set Production Environment
+process.env.NODE_ENV = 'production'
+
+//
+// Libraries
+//
 
 const Fs = require('fs')
 const Express = require('express')()
@@ -7,22 +15,26 @@ const Server = HTTP.createServer(Express)
 const IO = require('socket.io')(Server)
 const IOStream = require('socket.io-stream')
 const MongoDB = require('mongodb')
+const UniqueName = require('uuid/v4')
 
 const Misc = require('./System/Handler/Misc')
 const Type = require('./System/Handler/Type')
+const Upload = require('./System/Handler/Upload')
 const Config = require('./System/Config/Core')
 const DataBaseConfig = require('./System/Config/DataBase')
 
+// Connect To DataBase
 MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataBaseConfig.PASSWORD + '@' + DataBaseConfig.HOST + ':' + DataBaseConfig.PORT + '/' + DataBaseConfig.DATABASE,
     {
         reconnectTries: Number.MAX_VALUE,
-        reconnectInterval: 2000
+        reconnectInterval: 2000,
+        useNewUrlParser: true
     },
     function(Error, DataBase)
     {
         if (Error)
         {
-            Misc.Log('[DB]: ' + Error)
+            Misc.Analyze('OnDBConnectWarning', { Error: Error })
             return
         }
 
@@ -52,7 +64,9 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
              *         IMAGE: 2,
              *         GIF: 3,
              *         FILE: 4,
-             *         VOTE: 5
+             *         VOTE: 5,
+             *         STICKER: 6,
+             *         VOICE: 7
              *     }
              *     {string} Message - The message
              *     {
@@ -70,6 +84,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
              *     2: Fail - Data is wrong
              *     3: Fail - Message is empty
              *     4: Fail - To doesn't exist
+             *     5: Fail - Upload failed
              * }
              *
              */
@@ -103,30 +118,48 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     return
                 }
 
+                let Result
+
                 switch (Message.Type)
                 {
-                case Type.Message.VIDEO:
-                case Type.Message.GIF:
-                case Type.Message.IMAGE:
-                case Type.Message.FILE:
                 case Type.Message.TEXT:
-                    if (Message.Message.length > 512)
-                        Message.Message = Message.Message.substring(0, 512)
-                    break
-                default:
                     if (Message.Message.length > 4096)
                         Message.Message = Message.Message.substring(0, 4096)
+                    break
+                case Type.Message.STICKER:
+                    if (Message.Message.length > 512)
+                        Message.Message = Message.Message.substring(0, 512)
+
+                    break
+                default:
+                    if (Message.Message.length > 512)
+                        Message.Message = Message.Message.substring(0, 512)
+
+                    const ServerID = await Upload.BestServerID()
+                    const ServerURL = Upload.ServerURL(ServerID)
+                    const ServerPassword = Upload.ServerToken(ServerID)
+
+                    const File = Fs.createWriteStream(Config.TEMP + UniqueName())
+
+                    Stream.pipe(File)
+
+                    if (Message.Type === Type.Message.FILE)
+                        Result = await Upload.UploadFile(ServerURL, ServerPassword, File)
+                    else if (Message.Type === Type.Message.VIDEO)
+                        Result = await Upload.UploadVideo(ServerURL, ServerPassword, File)
+                    else if (Message.Type === Type.Message.IMAGE)
+                        Result = await Upload.UploadImage(ServerURL, ServerPassword, File)
+                    else if (Message.Type === Type.Message.VOICE)
+                        Result = await Upload.UploadVoice(ServerURL, ServerPassword, File)
                 }
 
-                // Stream.pipe(Fs.createWriteStream('ali.png'))
-
-                CallBack('{ "Result": 0 }')
+                CallBack(JSON.stringify(Result))
                 Misc.Analyze('SendMessage', { })
             })
 
             Socket.on('error', function(Error)
             {
-                Misc.Log('[IO]: ' + Error)
+                Misc.Analyze('OnError', { Error: Error })
             })
 
             Socket.on('disconnect', function()
@@ -174,31 +207,6 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
     })
 
 /*
-const App = require('express')()
-const HTTP = require('http').Server(App)
-const BodyParser = require('body-parser')
-const MongoDB = require('mongodb')
-const CoreConfig = require('./System/Config/Core')
-const DataBaseConfig = require('./System/Config/DataBase')
-const Misc = require('./System/Handler/Misc')
-
-MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataBaseConfig.PASSWORD + '@' + DataBaseConfig.HOST + ':' + DataBaseConfig.PORT + '/' + DataBaseConfig.DATABASE,
-  {
-    reconnectTries: Number.MAX_VALUE,
-    reconnectInterval: 2000
-  },
-  function (error, database) {
-    if (error) {
-      Misc.Log('[DB]: ' + error)
-      process.exit(1)
-    }
-
-    console.log('MongoDB Connected')
-
-    global.DB = database.db('BioGram2')
-
-    global.MongoID = MongoDB.ObjectID
-
     App.disable('x-powered-by')
 
     App.use(BodyParser.json())

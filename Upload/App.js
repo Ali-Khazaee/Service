@@ -73,7 +73,7 @@ App.post('/image', function(req, res)
             return
         }
 
-        if (typeof Files.Image === 'undefined' || Files.Image == null)
+        if (typeof Files.File === 'undefined' || Files.File == null)
         {
             res.json({ Result: 3 })
             return
@@ -93,7 +93,7 @@ App.post('/image', function(req, res)
 
             const NewPath = Directory + UniqueName() + '.jpg'
 
-            FileSystem.rename(Files.FileImage.path, NewPath, function(Error3)
+            FileSystem.rename(Files.File.path, NewPath, function(Error3)
             {
                 if (Error3)
                 {
@@ -131,7 +131,7 @@ App.post('/video', function(req, res)
             return
         }
 
-        if (typeof Files.Video === 'undefined' || Files.Video == null)
+        if (typeof Files.File === 'undefined' || Files.File == null)
         {
             res.json({ Result: 3 })
             return
@@ -152,7 +152,7 @@ App.post('/video', function(req, res)
             const Name = UniqueName()
             const NewPath = Directory + Name + '.mp4'
 
-            FileSystem.rename(Files.Video.path, NewPath, function(Error3)
+            FileSystem.rename(Files.File.path, NewPath, function(Error3)
             {
                 if (Error3)
                 {
@@ -222,6 +222,64 @@ App.post('/file', function(req, res)
                 }
 
                 Analyze('FileOnSuccess', { })
+                res.json({ Result: 0, Path: NewPath.substring(Config.STORAGE.length) })
+            })
+        })
+    })
+})
+
+// Upload Voice
+App.post('/voice', function(req, res)
+{
+    const Form = new Formidable.IncomingForm()
+    Form.uploadDir = Config.STORAGE
+    Form.encoding = 'utf-8'
+    Form.parse(req, function(Error, Fields, Files)
+    {
+        if (Error)
+        {
+            Analyze('VoiceOnError', { Error: Error })
+            res.json({ Result: 1, Error: Error })
+            return
+        }
+
+        if (Config.PASSWORD !== Fields.Password)
+        {
+            Analyze('VoiceOnWarning', { Password: Fields.Password })
+            res.json({ Result: 2 })
+            return
+        }
+
+        if (typeof Files.File === 'undefined' || Files.File == null)
+        {
+            res.json({ Result: 3 })
+            return
+        }
+
+        const CD = new Date()
+        const Directory = Config.STORAGE + CD.getFullYear() + '/' + CD.getMonth() + '/' + CD.getDate() + '/'
+
+        MakeDir(Directory, function(Error2)
+        {
+            if (Error2)
+            {
+                Analyze('VoiceOnError2', { Error: Error2 })
+                res.json({ Result: 4, Error: Error2 })
+                return
+            }
+
+            const NewPath = Directory + UniqueName() + '.mp3'
+
+            FileSystem.rename(Files.File.path, NewPath, function(Error3)
+            {
+                if (Error3)
+                {
+                    Analyze('VoiceOnError3', { Error: Error3 })
+                    res.json({ Result: 5, Error: Error3 })
+                    return
+                }
+
+                Analyze('VoiceOnSuccess', { })
                 res.json({ Result: 0, Path: NewPath.substring(Config.STORAGE.length) })
             })
         })

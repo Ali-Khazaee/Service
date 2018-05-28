@@ -1,6 +1,6 @@
 module.exports =
 {
-    // All Chats Type
+    // Message Type
     Message:
     {
         TEXT: 0,
@@ -8,6 +8,8 @@ module.exports =
         IMAGE: 2,
         GIF: 3,
         FILE: 4,
-        VOTE: 5
+        VOTE: 5,
+        STICKER: 6,
+        VOICE: 7
     }
 }

@@ -3,11 +3,6 @@ const Winston = require('winston')
 
 Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Storage/Debug.log' }) ] })
 
-function Log(Message)
-{
-    Winston.warn(process.pid + ' ' + Message)
-}
-
 function IsValidJSON(Data)
 {
     try
@@ -81,7 +76,6 @@ function Time()
     return Math.floor(Date.now() / 1000)
 }
 
-module.exports.Log = Log
 module.exports.IsValidJSON = IsValidJSON
 module.exports.Analyze = Analyze
 module.exports.IsUndefined = IsUndefined
