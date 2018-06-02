@@ -28,10 +28,9 @@ const DataBaseConfig = require('./System/Config/DataBase')
 MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataBaseConfig.PASSWORD + '@' + DataBaseConfig.HOST + ':' + DataBaseConfig.PORT + '/' + DataBaseConfig.DATABASE,
     {
         reconnectTries: Number.MAX_VALUE,
-        reconnectInterval: 2000,
-        useNewUrlParser: true
+        reconnectInterval: 2000
     },
-    function(Error, DataBase)
+    async function(Error, DataBase)
     {
         if (Error)
         {
@@ -43,6 +42,30 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
 
         global.DB = DataBase.db(DataBaseConfig.DataBase)
         global.MongoID = MongoDB.ObjectID
+
+        if (true)
+        {
+            const Key = 'eyJPd25lciI6IlFRIiwiQ13JlYXRlVGltZSI6MTUyNzk1NTMyMn0=.TI4CiQZ6G0rx2HDM9fKi3ANj7JYs8bwYXbexQhg/gIgBm4zTWNfAxU0Uay5bo9ZkdL7vssER1RZXCtICF67BglYb+5iF6mzSWI4NwcmUgQXl1s4m0CTYgzeDTpRXEg3cHpAeaufkfdsiZf2uHRIzRcmkNLvTSXNsl7t5zKg+BhPk7eEh7DzBhMUvkLkLxm3XTPMjp1+g8iq+Pb+O66/Dkmktq8ygLSt653TgpyilDE5NXSDoLO9fobsX6bn/rYBPi8I3XgHcYZ6Qpe1YrG4jo8d3eTmGyOZNJzDeT3AhFsuifp4Y7Spd4hJ/4W7wf78ac454fEih09CSK2hteEXL4w=='
+
+            const QQ = await Auth.Delete(Key)
+
+            console.log(QQ)
+
+            /*
+            const Verify = Auth.Verify(Owner)
+
+            console.log(Verify)
+
+            const Update = Auth.Update(Owner, 'IP')
+
+            console.log(Update)
+
+            const Delete = Auth.Delete(Owner)
+
+            console.log(Delete)
+            */
+            return
+        }
 
         IO.on('connection', function(Socket)
         {
