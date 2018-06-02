@@ -28,7 +28,7 @@ function Analyze(Tag, Data)
 
 function IsUndefined(Value)
 {
-    if (typeof Value === 'undefined' || Value === undefined || Value === null || Value == null)
+    if (typeof Value === 'undefined' || Value == null || Value === undefined || Value === null)
         return true
 
     if (typeof Value === 'string' && Value.length > 0)
@@ -76,10 +76,33 @@ function Time()
     return Math.floor(Date.now() / 1000)
 }
 
+function SyncPipe(Stream, File)
+{
+    return new Promise(function(resolve)
+    {
+        File.on('finish', () => resolve({ Result: 0 }))
+            .on('error', () => resolve({ Result: 1 }))
+
+        Stream.pipe(File)
+    })
+}
+
+function ReverseString(Value)
+{
+    let NewValue = ''
+
+    for (let I = Value.length - 1; I >= 0; I--)
+        NewValue += Value[I]
+
+    return NewValue
+}
+
 module.exports.IsValidJSON = IsValidJSON
 module.exports.Analyze = Analyze
 module.exports.IsUndefined = IsUndefined
 module.exports.Time = Time
+module.exports.SyncPipe = SyncPipe
+module.exports.ReverseString = ReverseString
 
 /*
 *

@@ -10,6 +10,7 @@ module.exports =
         FILE: 4,
         VOTE: 5,
         STICKER: 6,
-        VOICE: 7
+        VOICE: 7,
+        QUERY: 8 // @TODO Badan Ezafam Konid
     }
 }

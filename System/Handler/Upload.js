@@ -1,3 +1,10 @@
+// Set Strict
+'use strict'
+
+//
+// Libraries
+//
+
 const Request = require('request')
 
 const UploadConfig = require('../Config/Upload')
