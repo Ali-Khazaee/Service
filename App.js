@@ -30,11 +30,11 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
         reconnectTries: Number.MAX_VALUE,
         reconnectInterval: 2000
     },
-    async function(Error, DataBase)
+    function(Error, DataBase)
     {
         if (Error)
         {
-            Misc.Analyze('OnDBConnectWarning', { Error: Error })
+            console.log('OnDBConnectWarning: ' + Error)
             return
         }
 
@@ -43,35 +43,11 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
         global.DB = DataBase.db(DataBaseConfig.DataBase)
         global.MongoID = MongoDB.ObjectID
 
-        if (true)
-        {
-            const Key = 'eyJPd25lciI6IlFRIiwiQ13JlYXRlVGltZSI6MTUyNzk1NTMyMn0=.TI4CiQZ6G0rx2HDM9fKi3ANj7JYs8bwYXbexQhg/gIgBm4zTWNfAxU0Uay5bo9ZkdL7vssER1RZXCtICF67BglYb+5iF6mzSWI4NwcmUgQXl1s4m0CTYgzeDTpRXEg3cHpAeaufkfdsiZf2uHRIzRcmkNLvTSXNsl7t5zKg+BhPk7eEh7DzBhMUvkLkLxm3XTPMjp1+g8iq+Pb+O66/Dkmktq8ygLSt653TgpyilDE5NXSDoLO9fobsX6bn/rYBPi8I3XgHcYZ6Qpe1YrG4jo8d3eTmGyOZNJzDeT3AhFsuifp4Y7Spd4hJ/4W7wf78ac454fEih09CSK2hteEXL4w=='
-
-            const QQ = await Auth.Delete(Key)
-
-            console.log(QQ)
-
-            /*
-            const Verify = Auth.Verify(Owner)
-
-            console.log(Verify)
-
-            const Update = Auth.Update(Owner, 'IP')
-
-            console.log(Update)
-
-            const Delete = Auth.Delete(Owner)
-
-            console.log(Delete)
-            */
-            return
-        }
-
         IO.on('connection', function(Socket)
         {
             Misc.Analyze('OnConnect', { IP: Socket.request.connection.remoteAddress })
 
-            Socket.on('auth', function(Data, CallBack)
+            Socket.on('Authentication', function(Data, CallBack)
             {
                 if (!Misc.IsUndefined(Socket.__Owner))
                 {
@@ -91,48 +67,54 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                 CallBack('{ "Result": 0 }')
             })
 
-            /**
-             * @api
-             * SendMessage - API Sending Message
-             *
-             * @param
-             * {stream} Stream - The stream from client
-             *
-             * {JSON} Data - The data is a valid JSON
-             * {
-             *     {MongoID} To - The Reciever
-             *     {int} MessageType - The message type
-             *     {
-             *         TEXT: 0,
-             *         VIDEO: 1,
-             *         IMAGE: 2,
-             *         GIF: 3,
-             *         FILE: 4,
-             *         VOTE: 5,
-             *         STICKER: 6,
-             *         VOICE: 7
-             *     }
-             *     {string} Message - The message
-             *     {
-             *         it must be lower than 4096 characters,
-             *         if type is != 0 then it can be empty
-             *     }
-             * }
-             *
-             * {function} CallBack - Return the result to the client
-             *
-             * @return {string} Result - The result is JSON
-             * {
-             *     0: Success
-             *     1: Fail - Data is invalid JSON
-             *     2: Fail - Data is wrong
-             *     3: Fail - Message is empty
-             *     4: Fail - To doesn't exist
-             *     5: Fail - Upload failed
-             * }
-             *
-             */
-            IOStream(Socket).on('SendMessage', async function(Stream, Data, CallBack)
+            Socket.on('SendMessage', function(Data, CallBack)
+            {
+                if (Misc.IsValidJSON(Data))
+                {
+                    CallBack('{ "Result": 1 }')
+                    return
+                }
+
+                const Message = JSON.parse(Data)
+
+                if (Misc.IsUndefined(Message.To) || Misc.IsUndefined(Message.Message))
+                {
+                    CallBack('{ "Result": 2 }')
+                    return
+                }
+
+                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Message.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(function(Error, Result)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('OnSendMessageDBWarning', { Error: Error })
+                        CallBack('{ "Result": -1 }')
+                        return
+                    }
+
+                    if (Misc.IsUndefined(Result[0]))
+                    {
+                        CallBack('{ "Result": 3 }')
+                        return
+                    }
+
+                    if (Message.Message.length > 4096)
+                        Message.Message = Message.Message.substring(0, 4096)
+
+                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Misc.Time() }
+
+                    if (!Misc.IsUndefined(Message.ReplyID))
+                        Data.Reply = Message.ReplyID
+
+                    global.DB.collection('message').insertOne(Data)
+
+                    Misc.Analyze('SendMessage', { })
+
+                    CallBack('{ "Result": 0 }')
+                })
+            })
+
+            IOStream(Socket).on('SendData', async function(Stream, Data, CallBack)
             {
                 if (Misc.IsValidJSON(Data))
                 {
@@ -148,88 +130,69 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     return
                 }
 
-                if (Message.Type === 0 && (Misc.IsUndefined(Message.Message)))
+                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Message.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(async function(Error, QueryResult)
                 {
-                    CallBack('{ "Result": 3 }')
-                    return
-                }
+                    if (Error)
+                    {
+                        Misc.Analyze('OnSendMessageDBWarning', { Error: Error })
+                        CallBack('{ "Result": -1 }')
+                        return
+                    }
 
-                /*
-                Remove This When Authtication is Complete
-                Query e Limit + Projection Hatman Baresi She Resultesh DOroste Ya Na
-                const Post = await global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Message.To) }, $limit: 1 }, { $project: { Owner: 1 } } ]).toArray()
+                    if (Misc.IsUndefined(QueryResult[0]))
+                    {
+                        CallBack('{ "Result": 3 }')
+                        return
+                    }
 
-                if (!Misc.IsUndefined(Post[0]))
-                {
-                    CallBack('{ "Result": 4 }')
-                    return
-                }
-                */
-
-                let Result
-
-                switch (Message.Type)
-                {
-                case Type.Message.TEXT:
-                    if (!Misc.IsUndefined(Message.Message) && Message.Message.length > 4096)
-                        Message.Message = Message.Message.substring(0, 4096)
-
-                    Result.Result = 0
-                    break
-                default:
-                    if (!Misc.IsUndefined(Message.Message) && Message.Message.length > 512)
-                        Message.Message = Message.Message.substring(0, 512)
-
-                    const ServerID = await Upload.BestServerID()
-                    const ServerURL = Upload.ServerURL(ServerID)
-                    const ServerPassword = Upload.ServerToken(ServerID)
-                    const FileName = Config.TEMP + UniqueName()
+                    const FileName = Config.APP_STORAGE_TEMP + UniqueName()
                     const FileWrite = FileSystem.createWriteStream(FileName)
 
-                    let UploadResult = await Misc.SyncPipe(Stream, FileWrite)
+                    let PipeResult = await Misc.Pipe(Stream, FileWrite)
 
-                    if (Misc.IsUndefined(UploadResult.Result) || UploadResult.Result !== 0)
+                    if (PipeResult.Result !== 0)
+                    {
+                        CallBack('{ "Result": 4 }')
+                        return
+                    }
+
+                    let UploadResult
+                    const FileRead = FileSystem.createReadStream(FileName)
+
+                    if (Message.Type === Type.Message.FILE)
+                        UploadResult = await Upload.UploadFile(FileRead)
+                    else if (Message.Type === Type.Message.VIDEO)
+                        UploadResult = await Upload.UploadVideo(FileRead)
+                    else if (Message.Type === Type.Message.IMAGE)
+                        UploadResult = await Upload.UploadImage(FileRead)
+                    else if (Message.Type === Type.Message.VOICE)
+                        UploadResult = await Upload.UploadVoice(FileRead)
+
+                    FileSystem.unlink(FileName)
+
+                    if (UploadResult.Result !== 0)
                     {
                         CallBack('{ "Result": 5 }')
                         return
                     }
 
-                    const FileRead = FileSystem.createReadStream(FileName)
+                    if (!Misc.IsUndefined(Message.Message) && Message.Message.length > 512)
+                        Message.Message = Message.Message.substring(0, 512)
 
-                    if (Message.Type === Type.Message.FILE)
-                        UploadResult = await Upload.UploadFile(ServerURL, ServerPassword, FileRead)
-                    else if (Message.Type === Type.Message.VIDEO)
-                        UploadResult = await Upload.UploadVideo(ServerURL, ServerPassword, FileRead)
-                    else if (Message.Type === Type.Message.IMAGE)
-                        UploadResult = await Upload.UploadImage(ServerURL, ServerPassword, FileRead)
-                    else if (Message.Type === Type.Message.VOICE)
-                        UploadResult = await Upload.UploadVoice(ServerURL, ServerPassword, FileRead)
+                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Time: Misc.Time() }
 
-                    FileSystem.unlink(FileName)
+                    if (!Misc.IsUndefined(Message.ReplyID))
+                        Data.Reply = Message.ReplyID
 
-                    if (Misc.IsUndefined(UploadResult.Result) || UploadResult.Result !== 0)
-                    {
-                        CallBack('{ "Result": 6 }')
-                        return
-                    }
+                    Data.Server = UploadResult.ID
+                    Data.URL = UploadResult.URL
 
-                    Result.ServerID = ServerID
-                    Result.URL = UploadResult.Path
-                    Result.Result = UploadResult.Result
-                }
+                    global.DB.collection('message').insertOne(Data)
 
-                if (Misc.IsUndefined(Result.Result) || Result.Result !== 0)
-                {
-                    CallBack('{ "Result": 7 }')
-                    return
-                }
+                    Misc.Analyze('SendData', { })
 
-                global.DB.collection('message').insertOne({ From: global.MongoID(Socket.AID), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Server: Result.ServerID, URL: Result.URL, Time: Misc.Time() })
-
-                // @TODO Send to Curent user age online hast
-
-                CallBack('{ "Result": 0 }')
-                Misc.Analyze('SendMessage', { From: global.MongoID(Socket.AID), To: global.MongoID(Message.To) })
+                    CallBack('{ "Result": 0 }')
+                })
             })
 
             Socket.on('error', function(Error)
@@ -243,8 +206,13 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
             })
         })
 
-        Server.listen(Config.PORT, '0.0.0.0', function()
+        Server.listen(Config.APP_PORT, '0.0.0.0', function()
         {
             Misc.Analyze('OnStart', { })
         })
     })
+
+/*
+    Result List:
+    -1 : DataBase Warning
+*/

@@ -6,8 +6,8 @@
 //
 const Crypto = require('crypto')
 
-const Misc = require('./Misc')
 const Config = require('../Config/Core')
+const Misc = require('./Misc')
 
 function Create(Owner)
 {
@@ -17,7 +17,7 @@ function Create(Owner)
         const Signer = Crypto.createSign('sha256')
         Signer.update(Misc.ReverseString(Segment))
 
-        const Key = Segment + '.' + Signer.sign(Config.PRIVATE_KEY, 'base64')
+        const Key = Segment + '.' + Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')
 
         global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, CreateTime: Misc.Time() }, function(Error)
         {
@@ -54,7 +54,7 @@ function Verify(Key)
         let Verifier = Crypto.createVerify('sha256')
         Verifier.update(Misc.ReverseString(Data[0]))
 
-        if (!Verifier.verify(Config.PUBLIC_KEY, Data[1], 'base64'))
+        if (!Verifier.verify(Config.AUTH_PUBLIC_KEY, Data[1], 'base64'))
         {
             resolve({ Result: 3 })
             return

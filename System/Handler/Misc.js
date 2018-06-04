@@ -76,7 +76,7 @@ function Time()
     return Math.floor(Date.now() / 1000)
 }
 
-function SyncPipe(Stream, File)
+function Pipe(Stream, File)
 {
     return new Promise(function(resolve)
     {
@@ -101,7 +101,7 @@ module.exports.IsValidJSON = IsValidJSON
 module.exports.Analyze = Analyze
 module.exports.IsUndefined = IsUndefined
 module.exports.Time = Time
-module.exports.SyncPipe = SyncPipe
+module.exports.Pipe = Pipe
 module.exports.ReverseString = ReverseString
 
 /*
