@@ -105,7 +105,8 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     if (Message.Message.length > 4096)
                         Message.Message = Message.Message.substring(0, 4096)
 
-                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Misc.Time() }
+                    const Time = Misc.Time()
+                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Time }
 
                     if (!Misc.IsUndefined(Message.ReplyID))
                         Data.Reply = Message.ReplyID
@@ -115,7 +116,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     const To = ClientManager.Find(Message.To)
 
                     if (!Misc.IsUndefined(To))
-                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Misc.Time() })
+                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Time })
 
                     Misc.Analyze('SendMessage', { })
 
@@ -188,7 +189,8 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     if (!Misc.IsUndefined(Message.Message) && Message.Message.length > 512)
                         Message.Message = Message.Message.substring(0, 512)
 
-                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Time: Misc.Time() }
+                    const Time = Misc.Time()
+                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Time: Time }
 
                     if (!Misc.IsUndefined(Message.ReplyID))
                         Data.Reply = Message.ReplyID
@@ -197,6 +199,11 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     Data.URL = UploadResult.URL
 
                     global.DB.collection('message').insertOne(Data)
+
+                    const To = ClientManager.Find(Message.To)
+
+                    if (!Misc.IsUndefined(To))
+                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Time })
 
                     Misc.Analyze('SendData', { })
 
