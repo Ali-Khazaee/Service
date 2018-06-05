@@ -18,6 +18,7 @@ const MongoDB = require('mongodb')
 const UniqueName = require('uuid/v4')
 
 const Auth = require('./System/Handler/Auth')
+const ClientManager = require('./System/Handler/ClientManager')
 const Misc = require('./System/Handler/Misc')
 const Type = require('./System/Handler/Type')
 const Upload = require('./System/Handler/Upload')
@@ -64,6 +65,9 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                 }
 
                 Socket.__Owner = AuthResult.Owner
+
+                ClientManager.Add(Socket)
+
                 CallBack('{ "Result": 0 }')
             })
 
@@ -108,6 +112,11 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
 
                     global.DB.collection('message').insertOne(Data)
 
+                    const To = ClientManager.Find(Message.To)
+
+                    if (!Misc.IsUndefined(To))
+                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Misc.Time() })
+
                     Misc.Analyze('SendMessage', { })
 
                     CallBack('{ "Result": 0 }')
@@ -134,7 +143,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                 {
                     if (Error)
                     {
-                        Misc.Analyze('OnSendMessageDBWarning', { Error: Error })
+                        Misc.Analyze('OnSendDataDBWarning', { Error: Error })
                         CallBack('{ "Result": -1 }')
                         return
                     }
@@ -203,6 +212,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
             Socket.on('disconnect', function()
             {
                 Misc.Analyze('OnDisconnect', { IP: Socket.request.connection.remoteAddress })
+                ClientManager.Remove(Socket)
             })
         })
 

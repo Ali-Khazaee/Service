@@ -35,10 +35,9 @@ const DataBaseConfig = { HOST: 'ds261138.mlab.com', PORT: 61138, DATABASE: 'chan
 Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Error.log' }) ] })
 
 App.disable('x-powered-by')
-App.disable('etag')
 
 App.use(BodyParser.urlencoded({ extended: true }))
-App.use(Express.static(Config.STORAGE))
+App.use(Express.static(Config.STORAGE, { maxage: 86400000000 }))
 App.use(BodyParser.json())
 
 // For Window Only

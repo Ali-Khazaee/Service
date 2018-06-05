@@ -1,3 +1,7 @@
+
+// Set Strict
+'use strict'
+
 module.exports =
 {
     // Message Type
