@@ -1,4 +1,3 @@
-// Set Strict
 'use strict'
 
 const ClientList = new Map()
@@ -22,7 +21,7 @@ function Remove(Client)
     ClientList.delete(Client.id)
 }
 
-function IsAvailable(Client)
+function IsConnected(Client)
 {
     return ClientList.has(Client.id)
 }
@@ -32,5 +31,5 @@ module.exports =
     Add: Add,
     Find: Find,
     Remove: Remove,
-    IsAvailable: IsAvailable
+    IsConnected: IsConnected
 }

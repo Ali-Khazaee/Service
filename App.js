@@ -1,4 +1,3 @@
-// Set Strict
 'use strict'
 
 // Set Production Environment
@@ -8,25 +7,23 @@ process.env.NODE_ENV = 'production'
 // Libraries
 //
 
-const FileSystem = require('fs')
-const Express = require('express')()
 const HTTP = require('http')
-const Server = HTTP.createServer(Express)
-const IO = require('socket.io')(Server)
-const IOStream = require('socket.io-stream')
+const FileSystem = require('fs')
+const Server = HTTP.createServer()
 const MongoDB = require('mongodb')
 const UniqueName = require('uuid/v4')
+const IO = require('socket.io')(Server)
 
 const Auth = require('./System/Handler/Auth')
-const ClientManager = require('./System/Handler/ClientManager')
 const Misc = require('./System/Handler/Misc')
 const Type = require('./System/Handler/Type')
 const Upload = require('./System/Handler/Upload')
 const Config = require('./System/Config/Core')
-const DataBaseConfig = require('./System/Config/DataBase')
+const DBConfig = require('./System/Config/DataBase')
+const ClientManager = require('./System/Handler/ClientManager')
 
 // Connect To DataBase
-MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataBaseConfig.PASSWORD + '@' + DataBaseConfig.HOST + ':' + DataBaseConfig.PORT + '/' + DataBaseConfig.DATABASE,
+MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
     {
         reconnectTries: Number.MAX_VALUE,
         reconnectInterval: 2000
@@ -41,39 +38,54 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
 
         Misc.Analyze('OnDBConnect', { })
 
-        global.DB = DataBase.db(DataBaseConfig.DataBase)
+        global.DB = DataBase.db(DBConfig.DataBase)
         global.MongoID = MongoDB.ObjectID
 
-        IO.on('connection', function(Socket)
+        IO.on('connection', function(Client)
         {
-            Misc.Analyze('OnConnect', { IP: Socket.request.connection.remoteAddress })
+            Misc.Analyze('OnConnect', { IP: Client.request.connection.remoteAddress })
 
-            Socket.on('Authentication', function(Data, CallBack)
+            Client.use(function(Packet, Next)
             {
-                if (!Misc.IsUndefined(Socket.__Owner))
+                // if (Packet[0] === 'Authentication' || Misc.IsDefined(Client.__Owner))
+                Next()
+            })
+
+            Client.on('Authentication', async function(Data, CallBack)
+            {
+                if (Misc.IsDefined(Client.__Owner))
                 {
-                    CallBack('{ "Result": 1 }')
+                    CallBack({ Result: 1 })
                     return
                 }
 
-                const AuthResult = Auth.Verify(Data)
+                const AuthResult = await Auth.Verify(Data)
 
                 if (AuthResult.Result !== 0)
                 {
-                    CallBack('{ "Result": 2 }')
+                    CallBack({ Result: 2 })
                     return
                 }
 
-                Socket.__Owner = AuthResult.Owner
+                Client.__Owner = AuthResult.Owner
 
-                ClientManager.Add(Socket)
+                ClientManager.Add(Client)
 
-                CallBack('{ "Result": 0 }')
+                CallBack({ Result: 0 })
             })
 
-            Socket.on('SendMessage', function(Data, CallBack)
+            Client.on('SendMessage', function(Data, CallBack)
             {
-                if (Misc.IsValidJSON(Data))
+                // Client.emit('SendMessage', { 3: '4', 5: Buffer.alloc(610) })
+
+                console.log(Data)
+
+                CallBack({ ALI: 123 })
+            })
+
+            Client.on('SendMessage2', function(Data, CallBack)
+            {
+                if (Misc.IsInvalidJSON(Data))
                 {
                     CallBack('{ "Result": 1 }')
                     return
@@ -106,7 +118,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                         Message.Message = Message.Message.substring(0, 4096)
 
                     const Time = Misc.Time()
-                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Time }
+                    const Data = { From: global.MongoID(Client.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Time }
 
                     if (!Misc.IsUndefined(Message.ReplyID))
                         Data.Reply = Message.ReplyID
@@ -116,7 +128,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     const To = ClientManager.Find(Message.To)
 
                     if (!Misc.IsUndefined(To))
-                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Time })
+                        To.emit({ From: Client.__Owner, Message: Message.Message, Time: Time })
 
                     Misc.Analyze('SendMessage', { })
 
@@ -124,7 +136,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                 })
             })
 
-            IOStream(Socket).on('SendData', async function(Stream, Data, CallBack)
+            Client.on('SendData2', async function(Stream, Data, CallBack)
             {
                 if (Misc.IsValidJSON(Data))
                 {
@@ -190,7 +202,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                         Message.Message = Message.Message.substring(0, 512)
 
                     const Time = Misc.Time()
-                    const Data = { From: global.MongoID(Socket.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Time: Time }
+                    const Data = { From: global.MongoID(Client.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: Message.Type, Time: Time }
 
                     if (!Misc.IsUndefined(Message.ReplyID))
                         Data.Reply = Message.ReplyID
@@ -203,7 +215,7 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                     const To = ClientManager.Find(Message.To)
 
                     if (!Misc.IsUndefined(To))
-                        To.emit({ From: Socket.__Owner, Message: Message.Message, Time: Time })
+                        To.emit({ From: Client.__Owner, Message: Message.Message, Time: Time })
 
                     Misc.Analyze('SendData', { })
 
@@ -211,15 +223,15 @@ MongoDB.MongoClient.connect('mongodb://' + DataBaseConfig.USERNAME + ':' + DataB
                 })
             })
 
-            Socket.on('error', function(Error)
+            Client.on('error', function(Error)
             {
                 Misc.Analyze('OnError', { Error: Error })
             })
 
-            Socket.on('disconnect', function()
+            Client.on('disconnect', function()
             {
-                Misc.Analyze('OnDisconnect', { IP: Socket.request.connection.remoteAddress })
-                ClientManager.Remove(Socket)
+                Misc.Analyze('OnDisconnect', { IP: Client.request.connection.remoteAddress })
+                ClientManager.Remove(Client)
             })
         })
 

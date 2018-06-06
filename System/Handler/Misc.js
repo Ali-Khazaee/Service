@@ -3,25 +3,9 @@ const Winston = require('winston')
 
 Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Storage/Debug.log' }) ] })
 
-function IsValidJSON(Data)
-{
-    try
-    {
-        JSON.parse(Data)
-    }
-    catch (e)
-    {
-        return true
-    }
-
-    return false
-}
-
 function Analyze(Tag, Data)
 {
     Data.CreatedTime = Time()
-
-    // @TODO ADD Analyzer
 
     console.log(Tag + ' - ' + Util.inspect(Data, false, null))
 }
@@ -71,20 +55,14 @@ function IsUndefined(Value)
     return isNaN(Value)
 }
 
+function IsDefined(Value)
+{
+    return !IsUndefined(Value)
+}
+
 function Time()
 {
     return Math.floor(Date.now() / 1000)
-}
-
-function Pipe(Stream, File)
-{
-    return new Promise(function(resolve)
-    {
-        File.on('finish', () => resolve({ Result: 0 }))
-            .on('error', () => resolve({ Result: 1 }))
-
-        Stream.pipe(File)
-    })
 }
 
 function ReverseString(Value)
@@ -97,16 +75,58 @@ function ReverseString(Value)
     return NewValue
 }
 
-module.exports.IsValidJSON = IsValidJSON
-module.exports.Analyze = Analyze
-module.exports.IsUndefined = IsUndefined
-module.exports.Time = Time
-module.exports.Pipe = Pipe
+function IsInvalidJSON(Data)
+{
+    try
+    {
+        JSON.parse(Data)
+    }
+    catch (e)
+    {
+        return true
+    }
+
+    return false
+}
+
+function IsValidJSON(Data)
+{
+    return !IsInvalidJSON(Data)
+}
+
+function RandomString(Count)
+{
+    let Result = ''
+    const Possible = 'abcdefghijklmnopqrstuvwxyz'
+
+    for (let I = 0; I < Count; I++)
+        Result += Possible.charAt(Math.floor(Math.random() * Possible.length))
+
+    return Result
+}
+
+function RandomNumber(Count)
+{
+    let Result = ''
+    const Possible = '0123456789'
+
+    for (let I = 0; I < Count; I++)
+        Result += Possible.charAt(Math.floor(Math.random() * Possible.length))
+
+    return Result
+}
+
 module.exports.ReverseString = ReverseString
+module.exports.IsInvalidJSON = IsInvalidJSON
+module.exports.RandomNumber = RandomNumber
+module.exports.RandomString = RandomString
+module.exports.IsValidJSON = IsValidJSON
+module.exports.IsUndefined = IsUndefined
+module.exports.IsDefined = IsDefined
+module.exports.Analyze = Analyze
+module.exports.Time = Time
 
 /*
-*
-const NodeMailer = require('nodemailer')
 
 const EmailPattern = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-?\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/
 
@@ -122,37 +142,4 @@ function IsValidEmail (Email) {
   return Parts[1].split('.').some(function (Part) { return Part.length > 63 })
 }
 
-function SendEmail (Email, Subject, Body) {
-  const Transporter = NodeMailer.createTransport({ host: 'mail.biogram.co', ignoreTLS: true, auth: { user: 'no-reply@biogram.co', pass: 'K01kTl45' } })
-  const MailOptions = { from: '[Biogram] <no-reply@biogram.co>', to: Email, subject: Subject, html: Body }
-
-  Transporter.sendMail(MailOptions, function (error, info) {
-    if (error) { Log('SendEmail: ' + error + ' -- ' + info) }
-  })
-}
-
-function RandomString (Count) {
-  let Result = ''
-  const Possible = 'abcdefghijklmnopqrstuvwxyz'
-
-  for (let I = 0; I < Count; I++) { Result += Possible.charAt(Math.floor(Math.random() * Possible.length)) }
-
-  return Result
-}
-
-function RandomNumber (Count) {
-  let Result = ''
-  const Possible = '0123456789'
-
-  for (let I = 0; I < Count; I++) { Result += Possible.charAt(Math.floor(Math.random() * Possible.length)) }
-
-  return Result
-}
-
-async function IsBlock (Owner, Target) {
-  const Block = await DB.collection('follow').find({ $and: [ { Owner: Owner }, { Target: Target } ] }).count()
-
-  return Block !== 0
-}
-*
 */
