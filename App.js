@@ -20,6 +20,7 @@ const Type = require('./System/Handler/Type')
 const Upload = require('./System/Handler/Upload')
 const Config = require('./System/Config/Core')
 const DBConfig = require('./System/Config/DataBase')
+const UploadManager = require('./System/Handler/UploadManager')
 const ClientManager = require('./System/Handler/ClientManager')
 
 // Connect To DataBase
@@ -74,65 +75,101 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                 CallBack({ Result: 0 })
             })
 
+            var Upload2 = new UploadManager(Client)
+
             Client.on('SendMessage', function(Data, CallBack)
-            {
-                // Client.emit('SendMessage', { 3: '4', 5: Buffer.alloc(610) })
-
-                console.log(Data)
-
-                CallBack({ ALI: 123 })
-            })
-
-            Client.on('SendMessage2', function(Data, CallBack)
             {
                 if (Misc.IsInvalidJSON(Data))
                 {
-                    CallBack('{ "Result": 1 }')
+                    CallBack({ Result: 1 })
                     return
                 }
 
-                const Message = JSON.parse(Data)
-
-                if (Misc.IsUndefined(Message.To) || Misc.IsUndefined(Message.Message))
+                if (Misc.IsUndefined(Data.To) || Misc.IsUndefined(Data.Type))
                 {
-                    CallBack('{ "Result": 2 }')
+                    CallBack({ Result: 2 })
                     return
                 }
 
-                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Message.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(function(Error, Result)
+                if (Data.Type === Type.Message.TEXT && Misc.IsUndefined(Data.Message))
+                {
+                    CallBack({ Result: 3 })
+                    return
+                }
+
+                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Data.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(async function(Error, Result)
                 {
                     if (Error)
                     {
                         Misc.Analyze('OnSendMessageDBWarning', { Error: Error })
-                        CallBack('{ "Result": -1 }')
+                        CallBack({ Result: -1 })
                         return
                     }
 
                     if (Misc.IsUndefined(Result[0]))
                     {
-                        CallBack('{ "Result": 3 }')
+                        CallBack({ Result: 4 })
                         return
                     }
 
-                    if (Message.Message.length > 4096)
-                        Message.Message = Message.Message.substring(0, 4096)
+                    if (Data.Type === Type.Message.TEXT && Data.Message.length > 4096)
+                        Data.Message = Data.Message.substring(0, 4096)
+                    else if (Misc.IsDefined(Data.Message) && Data.Message.length > 512)
+                        Data.Message = Data.Message.substring(0, 512)
 
                     const Time = Misc.Time()
-                    const Data = { From: global.MongoID(Client.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Time: Time }
+                    const Message = { From: global.MongoID(Client.__Owner), To: global.MongoID(Data.To), Message: Data.Message, Type: Data.Type, Time: Time }
 
-                    if (!Misc.IsUndefined(Message.ReplyID))
-                        Data.Reply = Message.ReplyID
+                    if (Misc.IsDefined(Data.ReplyID))
+                        Message.Reply = Data.ReplyID
 
-                    global.DB.collection('message').insertOne(Data)
+                    if (Misc.IsDefined(Data.Data) && (Data.Type === Type.Message.IMAGE || Data.Type === Type.Message.FILE || Data.Type === Type.Message.VIDEO || Data.Type === Type.Message.VOICE))
+                    {
+                        let UploadResult
+                        const FileName = Config.APP_STORAGE_TEMP + UniqueName()
+
+                        try
+                        {
+                            FileSystem.writeFileSync(FileName, Data.Data)
+                        }
+                        catch (Error2)
+                        {
+                            Misc.Analyze('OnSendMessageWarning', { Error: Error2 })
+                            CallBack({ Result: 5 })
+                            return
+                        }
+
+                        if (Data.Type === Type.Message.FILE)
+                            UploadResult = await Upload.UploadFile(FileName)
+                        else if (Data.Type === Type.Message.VIDEO)
+                            UploadResult = await Upload.UploadVideo(FileName)
+                        else if (Data.Type === Type.Message.IMAGE)
+                            UploadResult = await Upload.UploadImage(FileName)
+                        else if (Data.Type === Type.Message.VOICE)
+                            UploadResult = await Upload.UploadVoice(FileName)
+
+                        FileSystem.unlink(FileName)
+
+                        if (UploadResult.Result !== 0)
+                        {
+                            CallBack({ Result: 5 })
+                            return
+                        }
+
+                        Message.URL = UploadResult.Path
+                        Message.Server = UploadResult.ID
+                    }
+
+                    global.DB.collection('message').insertOne(Message)
 
                     const To = ClientManager.Find(Message.To)
 
-                    if (!Misc.IsUndefined(To))
-                        To.emit({ From: Client.__Owner, Message: Message.Message, Time: Time })
+                    if (Misc.IsDefined(To))
+                        To.emit({ From: Client.__Owner, Message: Data.Message, Type: Data.Type, Time: Time })
 
                     Misc.Analyze('SendMessage', { })
 
-                    CallBack('{ "Result": 0 }')
+                    CallBack({ Result: 0 })
                 })
             })
 

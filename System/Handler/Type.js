@@ -1,5 +1,3 @@
-
-// Set Strict
 'use strict'
 
 module.exports =
@@ -7,14 +5,12 @@ module.exports =
     // Message Type
     Message:
     {
-        // Stream
-        IMAGE: 0, // DONE
-        VIDEO: 1, // DONE
-        VOICE: 2, // DONE
-        FILE: 3, // DONE
-        GIF: 4,
-        // Normal
-        TEXT: 5, // DONE
+        TEXT: 0,
+        IMAGE: 1,
+        VIDEO: 2,
+        VOICE: 3,
+        FILE: 4,
+        GIF: 5,
         STICKER: 6,
         VOTE: 7,
         QUERY: 8

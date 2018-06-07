@@ -1,4 +1,3 @@
-// Set Strict
 'use strict'
 
 //

@@ -1,4 +1,3 @@
-// Set Strict
 'use strict'
 
 //
@@ -6,9 +5,10 @@
 //
 
 const Request = require('request')
+const FileSystem = require('fs')
 
-const UploadConfig = require('../Config/Upload')
 const Misc = require('../Handler/Misc')
+const UploadConfig = require('../Config/Upload')
 
 const ServerList =
 [
@@ -85,7 +85,7 @@ function BestServerID()
     })
 }
 
-function UploadFile(Stream)
+function UploadFile(Path)
 {
     return new Promise(async function(resolve)
     {
@@ -97,7 +97,9 @@ function UploadFile(Stream)
             return
         }
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/file', formData: { Password: ServerToken(ServerResult.ID), File: Stream } }, function(Error, Response, Body)
+        const File = FileSystem.createReadStream(Path)
+
+        Request.post({ url: ServerURL(ServerResult.ID) + '/file', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -113,7 +115,7 @@ function UploadFile(Stream)
     })
 }
 
-function UploadVideo(Stream)
+function UploadVideo(Path)
 {
     return new Promise(async function(resolve)
     {
@@ -125,7 +127,9 @@ function UploadVideo(Stream)
             return
         }
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/video', formData: { Password: ServerToken(ServerResult.ID), File: Stream } }, function(Error, Response, Body)
+        const File = FileSystem.createReadStream(Path)
+
+        Request.post({ url: ServerURL(ServerResult.ID) + '/video', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -141,7 +145,7 @@ function UploadVideo(Stream)
     })
 }
 
-function UploadImage(Stream)
+function UploadImage(Path)
 {
     return new Promise(async function(resolve)
     {
@@ -153,7 +157,9 @@ function UploadImage(Stream)
             return
         }
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/image', formData: { Password: ServerToken(ServerResult.ID), File: Stream } }, function(Error, Response, Body)
+        const File = FileSystem.createReadStream(Path)
+
+        Request.post({ url: ServerURL(ServerResult.ID) + '/image', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -169,7 +175,7 @@ function UploadImage(Stream)
     })
 }
 
-function UploadVoice(Stream)
+function UploadVoice(Path)
 {
     return new Promise(async function(resolve)
     {
@@ -181,7 +187,9 @@ function UploadVoice(Stream)
             return
         }
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/voice', formData: { Password: ServerToken(ServerResult.ID), File: Stream } }, function(Error, Response, Body)
+        const File = FileSystem.createReadStream(Path)
+
+        Request.post({ url: ServerURL(ServerResult.ID) + '/voice', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
