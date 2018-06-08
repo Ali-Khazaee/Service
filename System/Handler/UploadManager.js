@@ -4,163 +4,61 @@
 // Libraries
 //
 
-const Util = require('util')
 const FileSystem = require('fs')
-const EventEmitter = require('events').EventEmitter
+const UniqueName = require('uuid/v4')
 
+const Misc = require('../Handler/Misc')
 const Config = require('../Config/Core')
 
 function UploadHandler(Client)
 {
-    var Self = this
-    var UploadList = { }
+    const UploadList = { }
 
-    this.Client = Client
-    this.FileSize = Config.UPLOAD_SIZE
-    this.ChunkSize = Config.UPLOAD_CHUNK
-    this.UploadDir = Config.APP_STORAGE_TEMP
-
-    Client.on('UploadHandler::Sync', function()
+    Client.on('UploadHandler::Buffer', function(File)
     {
-        Client.emit('UploadHandler::Sync', { FileSize: this.FileSize, ChunkSize: this.ChunkSize })
-    })
+        if (Misc.IsUndefined(File.ID))
+            return
 
-    Client.on('UploadHandler::Start', function(File)
-    {
-        const ID = File.ID
-
-        function SendError(Code)
+        if (Misc.IsUndefined(UploadList[File.ID]))
         {
-            Client.emit(`UploadHandler::Error`, { ID: ID, Result: Code })
+            UploadList[File.ID].Write = 0
+            UploadList[File.ID].FileSize = File.Size || 0
+            UploadList[File.ID].FileName = File.Name || ''
+            UploadList[File.ID].FileName2 = UniqueName()
+            UploadList[File.ID].LastActivity = Misc.Time()
+            UploadList[File.ID].WritableStream = FileSystem.createWriteStream(Config.APP_STORAGE_TEMP + UploadList[File.ID].FileName2)
         }
 
-        if (File.size > this.FileSize)
+        if (UploadList[File.ID].Write > Config.UPLOAD_FILE_SIZE)
         {
-            SendError(1)
+            Client.emit('UploadHandler::Buffer', { ID: File.ID, Failed: true })
             return
         }
 
-        function UploadComplete()
+        if (FileSystem.existsSync(Config.APP_STORAGE_TEMP + UploadList[File.ID].FileName2))
         {
-            const Stream = UploadList[ID].WriteStream
+            const UploadFile = FileSystem.statSync(Config.APP_STORAGE_TEMP + UploadList[File.ID].FileName2)
 
-            if (Stream)
-                Stream.end()
-
-            Client.emit(`UploadHandler::Complete`, { ID: ID })
-
-            delete UploadList[ID]
-        }
-
-        Client.on(`UploadHandler::Complete`, function()
-        {
-            UploadComplete()
-        })
-
-        UploadList[ID] =
-        {
-            Name: File.name,
-            Size: File.size,
-            WriteStream: null,
-            Resume: false,
-            Data: { },
-            Wrote: 0
-        }
-
-        if (FileSystem.existsSync(this.UploadDir + UploadList[ID].Name))
-        {
-            const UploadFile = FileSystem.statSync(this.UploadDir + UploadList[ID].Name)
-
-            if (UploadList[ID].Size > 0)
+            if (UploadList[File.ID].Size <= UploadFile.size)
             {
-                if (UploadList[ID].Size > UploadFile.size)
-                {
-                    UploadList[ID].Wrote = UploadFile.size
-                    UploadList[ID].Resume = true
+                const Stream = UploadList[File.ID].WritableStream
 
-                    Client.emit(`UploadHandler::Resume`, { ID: UploadList[ID] })
-                }
-                else
-                {
-                    UploadComplete()
-                    return
-                }
-            }
-        }
+                if (Stream)
+                    Stream.end()
 
-        UploadList[ID].WriteStream = FileSystem.createWriteStream(this.UploadDir + UploadList[ID].Name)
+                delete UploadList[File.ID]
 
-        Client.emit(`UploadHandler::Request`, { ID: ID })
-
-        Client.on(`UploadHandler::Stream`, function(chunk)
-        {
-            if (UploadList[ID].abort)
-            {
-                Client.removeAllListeners(`socket.io-file::stream::${ID}`)
-                Client.removeAllListeners(`socket.io-file::done::${ID}`)
-                Client.removeAllListeners(`socket.io-file::complete::${ID}`)
-                Client.removeAllListeners(`socket.io-file::abort::${ID}`)
-                Client.removeAllListeners(`socket.io-file::error::${ID}`)
-
-                UploadList[ID].writeStream.end()
-                delete UploadList[ID]
+                Client.emit(`UploadHandler::Buffer`, { ID: File.ID, Success: true })
                 return
             }
+        }
 
-            var writeStream = UploadList[ID].writeStream
+        UploadList[File.ID].Write += File.Data.length
+        UploadList[File.ID].LastActivity = Misc.Time()
+        UploadList[File.ID].WritableStream.write(File.Data)
 
-            function write()
-            {
-                if ((UploadList[ID].wrote + chunk.length) > (Self.maxFileSize))
-                {
-                    SendError(new Error(`Uploading file size exceeded max file size ${Self.maxFileSize} byte(s).`))
-                    return
-                }
-
-                var writeDone = writeStream.write(chunk)
-                UploadList[ID].wrote += chunk.length
-
-                if (!writeDone)
-                    writeStream.once('drain', () => Client.emit(`socket.io-file::request::${ID}`))
-                else
-                {
-                    if (Self.transmissionDelay)
-                    {
-                        setTimeout(() =>
-                        {
-                            Client.emit(`socket.io-file::request::${ID}`)
-                        }, Self.transmissionDelay)
-                    }
-                    else
-                        Client.emit(`socket.io-file::request::${ID}`)
-                }
-            }
-
-            write()
-        })
-
-        Client.on(`socket.io-file::abort::${ID}`, function()
-        {
-            UploadList[ID].abort = true
-
-            Client.emit(`socket.io-file::abort::${ID}`,
-                {
-                    name: UploadList[ID].name,
-                    size: UploadList[ID].size,
-                    wrote: UploadList[ID].wrote,
-                    uploadDir: UploadList[ID].uploadDir
-                })
-        })
+        Client.emit(`UploadHandler::Buffer`, { ID: File.ID, Size: UploadList[File.ID].Write })
     })
 }
-
-UploadHandler.prototype.destroy = function()
-{
-    this.removeAllListeners()
-    this.Client.emit('UploadHandler::Stop')
-    this.Client = null
-}
-
-Util.inherits(UploadHandler, EventEmitter)
 
 module.exports = UploadHandler

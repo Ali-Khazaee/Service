@@ -8,8 +8,7 @@ module.exports =
     APP_USERNAME_PATTERN: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
 
     // Upload Handler
-    UPLOAD_SIZE: 1024 * 1024 * 1024,
-    UPLOAD_CHUNK: 1024 * 10,
+    UPLOAD_FILE_SIZE: 1024 * 1024 * 1024,
 
     // Authentication
     AUTH_PRIVATE_KEY: FS.readFileSync('./System/Storage/PrivateKey.pem'),

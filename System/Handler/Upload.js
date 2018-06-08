@@ -3,9 +3,8 @@
 //
 // Libraries
 //
-
-const Request = require('request')
 const FileSystem = require('fs')
+const Request = require('request')
 
 const Misc = require('../Handler/Misc')
 const UploadConfig = require('../Config/Upload')
