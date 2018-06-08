@@ -1,9 +1,5 @@
 'use strict'
 
-//
-// Libraries
-//
-
 const Util = require('util')
 const Winston = require('winston')
 
