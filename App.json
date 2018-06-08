@@ -2,12 +2,12 @@
     "apps":
     [
       {
-        "name": "Channel Service",
+        "name": "Channel Server",
         "script": "./App.js",
         "exec_mode": "cluster",
         "instances": "max",
-        "error_file": "./stderr.log",
-        "out_file": "./stdout.log",
+        "error_file": "./Error.log",
+        "out_file": "./Detail.log",
         "env":
         {
           "NODE_ENV": "production"
