@@ -1,243 +1,369 @@
 'use strict'
 
-var Writable = require('stream').Writable
-var Readable = require('stream').Readable
-var util = require('util')
-var EventEmitter = require('events')
-var ut = require('utjs')
+const EventEmitter = require('events')
+const Readable = require('stream').Readable
 
-var Serializer = require('./Serializer')
-var Reader = require('./Reader')
-var Constants = require('./Constants')
-
-var MAX_MESSAGE_ID = Math.pow(2, 32) - 1
-
-function Sock(Socket, Server)
+class Socket extends EventEmitter
 {
-    var opts = {}
-    Sock.super_.call(this)
-
-    this._serializer = Server._serializer
-    this._reader = new Reader()
-    this._opts = opts
-    this._shouldReconnect = ut.isBoolean(opts.reconnect) ? opts.reconnect : Constants.RECONNECT
-    this._reconnectInterval = ut.isNumber(opts.reconnectInterval) ? opts.reconnectInterval : Constants.RECONNECT_INTERVAL
-    this._useQueue = ut.isBoolean(opts.useQueue) ? opts.useQueue : Constants.USE_QUEUE
-    this._queueSize = ut.isNumber(opts.queueSize) ? opts.queueSize : Constants.QUEUE_SIZE
-    this._messageListener = ut.isFunction(opts.messageListener) ? opts.messageListener : null
-    this._messageId = 1
-    this._acks = { }
-    this._socketConfig = { }
-    this._manuallyClosed = false
-    this._queue = []
-    this._streams = { }
-    this._server = Server
-    this.id = ut.randomString(5)
-    this._socket = Socket
-    this._connected = true
-
-    this._socket.on('connect', () =>
+    constructor(Socket)
     {
-        this._connected = true
-        this._flushQueue()
-        this._socket.emit('drain')
-        this._superEmit('socket_connect')
-    })
+        super()
 
-    this._socket.on('data', (chunk) =>
+        this._Stream = { }
+        this._MessageID = 1
+        this._Socket = Socket
+        this._Connected = true
+
+        this._reader = new Reader()
+
+        this._acks = { }
+
+        this._Socket.on('data', (Chunk) =>
+        {
+            const buffer = this._reader.read(Chunk)
+
+            for (let I = 0; I < buffer.length; I++)
+            {
+                const Data = this.Deserialize(buffer[I])
+
+                switch (Data.MessageType)
+                {
+                case Serializer.MT_DATA:
+                    this.emit(Data.Event, Data.Data)
+                    break
+                case Serializer.MT_DATA_WITH_ACK:
+                    this.emit(Data.Event, Data.Data, this.AckCallback(Data.MessageID))
+                    break
+                case Serializer.MT_DATA_STREAM_OPEN_WITH_ACK:
+                    this.emit(Data.Event, this.OpenDataStream(Data), Data.Data, this.AckCallback(Data.MessageID))
+                    break
+                case Serializer.MT_DATA_STREAM:
+                    this.TransmitDataStream(Data)
+                    break
+                case Serializer.MT_DATA_STREAM_CLOSE:
+                    this.CloseDataStream(Data)
+                    break
+                }
+            }
+        })
+
+        this._Socket.on('close', (Error) =>
+        {
+            this._Socket = null
+            this._Connected = false
+        })
+    }
+
+    OpenDataStream(Data)
     {
-        var buffers = this._reader.read(chunk)
+        const _this = this
+        const ReadStream = new Readable({
+            read: function(size)
+            {
+                if (_this._Socket.isPaused())
+                    _this._Socket.resume()
+            }
+        })
 
-        for (var i = 0; i < buffers.length; i++)
-            this._onMessage(this._serializer.deserialize(buffers[i]))
-    })
+        this._Stream[Data.MessageID] = ReadStream
+        return ReadStream
+    }
 
-    this._socket.on('close', (isError) =>
+    TransmitDataStream(Data)
     {
-        this._connected = false
-        this._socket = null
+        const ReadStream = this._Stream[Data.MessageID]
 
-        if (this._shouldReconnect && !this._manuallyClosed)
-            this._reconnect()
+        if (!ReadStream.push(Data.Data))
+            this._Socket.pause()
+    }
 
-        this._superEmit('close')
-    })
+    CloseDataStream(Data)
+    {
+        const ReadStream = this._Stream[Data.MessageID]
 
-    this._socket.on('error', function (err) {
-        this._onError(err);
-    });
+        ReadStream.push(null)
+        delete this._Stream[Data.MessageID]
+    }
 
-    this._socket.on('timeout', function () {
-        this._socket.destroy();
-      this._onError(ut.error('connect TIMEOUT'));
-    });
+    Send(Event, Data, MessageType, Option)
+    {
+        if (this._Connected)
+            return this._Socket.write(this.Serialize(Event, Data, MessageType, Option.MessageID))
+    }
 
-    this._socket.on('drain', function () {
-      /**
-       * Emitted when the write buffer of the internal socket becomes empty.
-       * Can be used to throttle uploads.
-       *
-       * @event Sock#socket_drain
-       */
-      _this._superEmit('socket_drain');
-    });
+    AckCallback(MessageID)
+    {
+        const _this = this
+
+        return function Callback(Data)
+        {
+            _this.Send('', Data, Serializer.MT_ACK, { MessageID: MessageID })
+        }
+    }
+
+    Deserialize(buffer)
+    {
+        let Data
+        let Offset = 6 // TODO : This Should Be Fixed In Client And Server
+        let DataType = buffer[Offset++]
+        let MessageType = buffer[Offset++]
+
+        let MessageID = buffer.readUInt32LE(Offset)
+        Offset += 4
+
+        let EventLength = buffer.readUInt16LE(Offset)
+        Offset += 2
+
+        let Event = buffer.toString(undefined, Offset, Offset + EventLength)
+        Offset += EventLength
+
+        let DataLength = buffer.readUInt32LE(Offset)
+        Offset += 4
+
+        switch (DataType)
+        {
+        case Serializer.DT_STRING:
+            Data = buffer.toString(undefined, Offset, Offset + DataLength)
+            break
+        case Serializer.DT_OBJECT:
+            Data = JSON.parse(buffer.slice(Offset, Offset + DataLength).toString())
+            break
+        case Serializer.DT_BINARY:
+            Data = buffer.slice(Offset, Offset + DataLength)
+            break
+        case Serializer.DT_INTEGER:
+            Data = buffer.readIntLE(Offset, DataLength)
+            break
+        case Serializer.DT_DECIMAL:
+            Data = buffer.readDoubleLE(Offset)
+            break
+        case Serializer.DT_BOOLEAN:
+            Data = buffer[Offset]
+        }
+
+        return { Event: Event, Data: Data, MessageID: MessageID, MessageType: MessageType }
+    }
+
+    Serialize(Event, Data, MessageType, MessageID)
+    {
+        let DataType
+
+        switch (typeof Data)
+        {
+        case 'string':
+            DataType = Serializer.DT_STRING
+            break
+        case 'number':
+            DataType = Data % 1 === 0 ? Serializer.DT_INTEGER : Serializer.DT_DECIMAL
+            break
+        case 'object':
+            if (Data === null)
+                DataType = Serializer.DT_EMPTY
+            else if (Data instanceof Buffer)
+                DataType = Serializer.DT_BINARY
+            else
+            {
+                Data = Buffer.from(JSON.stringify(Data))
+                DataType = Serializer.DT_OBJECT
+            }
+            break
+        case 'boolean':
+            Data = Data ? 1 : 0
+            DataType = Serializer.DT_BOOLEAN
+            break
+        default:
+            Data = null
+            DataType = Serializer.DT_EMPTY
+        }
+
+        let EventLength = Buffer.byteLength(Event)
+        let DataLength = 0
+
+        switch (DataType)
+        {
+        case Serializer.DT_STRING:
+            DataLength = Buffer.byteLength(Data)
+            break
+        case Serializer.DT_BINARY:
+        case Serializer.DT_OBJECT:
+            DataLength = Data.length
+            break
+        case Serializer.DT_INTEGER:
+            DataLength = 6
+            break
+        case Serializer.DT_DECIMAL:
+            DataLength = 8
+            break
+        case Serializer.DT_BOOLEAN:
+            DataLength = 1
+            break
+        }
+
+        let MessageLength = 8 + 2 + EventLength + 4 + DataLength
+        let buffer = Buffer.alloc(4 + MessageLength)
+        let Offset = 0
+
+        buffer.writeUInt32LE(MessageLength, Offset)
+        Offset += 4
+
+        buffer[Offset] = Serializer.VERSION
+        Offset++
+
+        buffer[Offset] = 0
+        Offset++
+
+        buffer[Offset] = DataType
+        Offset++
+
+        buffer[Offset] = MessageType
+        Offset++
+
+        buffer.writeUInt32LE(MessageID, Offset)
+        Offset += 4
+
+        buffer.writeUInt16LE(EventLength, Offset)
+        Offset += 2
+
+        buffer.write(Event, Offset, EventLength)
+        Offset += EventLength
+
+        buffer.writeUInt32LE(DataLength, Offset)
+        Offset += 4
+
+        switch (DataType)
+        {
+        case Serializer.DT_STRING:
+            buffer.write(Data, Offset, DataLength)
+            break
+        case Serializer.DT_BINARY:
+        case Serializer.DT_OBJECT:
+            Data.copy(buffer, Offset, 0, DataLength)
+            break
+        case Serializer.DT_INTEGER:
+            buffer.writeIntLE(Data, Offset, DataLength)
+            break
+        case Serializer.DT_DECIMAL:
+            buffer.writeDoubleLE(Data, Offset)
+            break
+        case Serializer.DT_BOOLEAN:
+            buffer[Offset] = Data
+        }
+
+        return buffer
+    }
 }
 
+module.exports = Socket
+
 /*
-1
-1
-2
-1
-1
-1
-3
-1
-1
-1
-1
-1
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
 */
-util.inherits(Sock, EventEmitter)
 
-Sock.prototype._superEmit = Sock.prototype.emit
+class Serializer
+{
 
-Sock.prototype._send = function (event, data, mt, opts) {
-  opts = opts || {};
-  var messageId = opts.messageId || this._nextMessageId();
+}
 
-  if (opts.cb !== undefined) {
-    this._acks[messageId] = opts.cb;
-  }
+Serializer.VERSION = 1
 
-  var buff = this._serializer.serialize(event, data, mt, messageId);
+Serializer.DT_STRING = 1
+Serializer.DT_BINARY = 2
+Serializer.DT_INTEGER = 3
+Serializer.DT_DECIMAL = 4
+Serializer.DT_OBJECT = 5
+Serializer.DT_BOOLEAN = 6
+Serializer.DT_EMPTY = 7
 
-  if (this._connected) {
-    return this._socket.write(buff);
-  } else if (this._useQueue) {
-    if (this._queue.length + 1 > this._queueSize) {
-      this._queue.shift();
+Serializer.MT_ERROR = 0
+Serializer.MT_REGISTER = 1
+Serializer.MT_DATA = 2
+Serializer.MT_DATA_TO_SOCKET = 3
+Serializer.MT_DATA_WITH_ACK = 6
+Serializer.MT_ACK = 7
+Serializer.MT_DATA_STREAM_OPEN = 11
+Serializer.MT_DATA_STREAM = 12
+Serializer.MT_DATA_STREAM_CLOSE = 13
+Serializer.MT_DATA_STREAM_OPEN_WITH_ACK = 14
+Serializer.MT_DATA_STREAM_OPEN_TO_SOCKET = 15
+
+function Reader()
+{
+    // Main buffer
+    this._buffer = null
+    this._offset = 0
+    this._bytesRead = 0
+    this._messageLength = 0
+
+    // Chunk
+    this._offsetChunk = 0
+}
+
+Reader.prototype.read = function(chunk)
+{
+    this._offsetChunk = 0
+    var buffers = []
+
+    while (this._offsetChunk < chunk.length)
+    {
+        if (this._bytesRead < 4)
+        {
+            if (this._readMessageLength(chunk))
+                this._createBuffer()
+            else
+                break
+        }
+
+        if (this._bytesRead < this._buffer.length && !this._readMessageContent(chunk))
+            break
+
+        // Buffer ready, store it and keep reading the chunk
+        buffers.push(this._buffer)
+        this._offset = 0
+        this._bytesRead = 0
+        this._messageLength = 0
     }
 
-    this._queue.push(buff);
-    return false;
-  }
-};
+    return buffers
+}
 
-Sock.prototype._reconnect = function () {
-  var _this = this;
-  setTimeout(function () {
-    /**
-     * The socket is trying to reconnect.
-     *
-     * @event Sock#reconnecting
-     */
-    _this._superEmit('reconnecting');
-    _this.connect();
-  }, this._reconnectInterval);
-};
+Reader.prototype._readMessageLength = function(chunk)
+{
+    for (; this._offsetChunk < chunk.length && this._bytesRead < 4; this._offsetChunk++, this._bytesRead++)
+        this._messageLength |= chunk[this._offsetChunk] << (this._bytesRead * 8)
 
-Sock.prototype._onMessage = function (msg) {
-  var readStream;
+    return this._bytesRead === 4
+}
 
-  switch (msg.mt) {
-    case Serializer.MT_DATA:
-      this._superEmit(msg.event, msg.data);
-      break;
-    case Serializer.MT_DATA_STREAM_OPEN:
-      readStream = this._openDataStream(msg);
-      this._superEmit(msg.event, readStream, msg.data);
-      break;
-    case Serializer.MT_DATA_STREAM_OPEN_WITH_ACK:
-      readStream = this._openDataStream(msg);
-      this._superEmit(msg.event, readStream, msg.data, this._ackCallback(msg.messageId));
-      break;
-    case Serializer.MT_DATA_STREAM:
-      this._transmitDataStream(msg);
-      break;
-    case Serializer.MT_DATA_STREAM_CLOSE:
-      this._closeDataStream(msg);
-      break;
-    case Serializer.MT_DATA_WITH_ACK:
-      this._superEmit(msg.event, msg.data, this._ackCallback(msg.messageId));
-      break;
-    case Serializer.MT_ACK:
-      this._acks[msg.messageId](msg.data);
-      delete this._acks[msg.messageId];
-      break;
-    default:
-      if (this._messageListener) {
-        this._messageListener(msg);
-      }
-  }
-};
+Reader.prototype._readMessageContent = function(chunk)
+{
+    var bytesToRead = this._buffer.length - this._bytesRead
+    var bytesInChunk = chunk.length - this._offsetChunk
+    var end = bytesToRead > bytesInChunk ? chunk.length : this._offsetChunk + bytesToRead
 
-Sock.prototype._openDataStream = function (msg) {
-  var _this = this;
-  var readStream = new Readable({
-    read: function (size) {
-      if (_this._socket.isPaused()) {
-        _this._socket.resume();
-      }
-    }
-  });
+    chunk.copy(this._buffer, this._offset, this._offsetChunk, end)
 
-  this._streams[msg.messageId] = readStream;
-  return readStream;
-};
+    var bytesRead = end - this._offsetChunk
 
-Sock.prototype._transmitDataStream = function (msg) {
-  var readStream = this._streams[msg.messageId];
+    this._bytesRead += bytesRead
+    this._offset += bytesRead
+    this._offsetChunk = end
 
-  if (!readStream.push(msg.data)) {
-    this._socket.pause();
-  }
-};
+    return this._bytesRead === this._buffer.length
+}
 
-Sock.prototype._closeDataStream = function (msg) {
-  var readStream = this._streams[msg.messageId];
-
-  readStream.push(null);
-  delete this._streams[msg.messageId];
-};
-
-Sock.prototype._ackCallback = function (messageId) {
-  var _this = this;
-
-  return function ackCallback(data) {
-    _this._send('', data, Serializer.MT_ACK, { messageId: messageId });
-  };
-};
-
-Sock.prototype._nextMessageId = function () {
-  if (++this._messageId > MAX_MESSAGE_ID) {
-    this._messageId = 1;
-  }
-
-  return this._messageId;
-};
-
-Sock.prototype._flushQueue = function () {
-  if (this._queue.length > 0) {
-    for (var i = 0; i < this._queue.length; i++) {
-      this._socket.write(this._queue[i]);
-    }
-
-    this._queue.length = 0;
-  }
-};
-
-Sock.prototype._onError = function (err) {
-  if (this.listenerCount('error') > 0) {
-    /**
-     * Error event from net.Socket or Socket.
-     *
-     * @event Sock#error
-     */
-    this._superEmit('error', err);
-  } else {
-    console.error('Missing error handler on `Socket`.');
-    console.error(err.stack);
-  }
-};
-
-module.exports = Sock;
+Reader.prototype._createBuffer = function()
+{
+    this._buffer = Buffer.allocUnsafe(4 + this._messageLength)
+    this._buffer.writeUInt32LE(this._messageLength, this._offset)
+    this._offset += 4
+}

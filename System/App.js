@@ -1,52 +1,56 @@
 'use strict'
 
-// Set Production Environment
+// Environment
 process.env.NODE_ENV = 'production'
 
-const Server = require('./Library/Server')
+const Net = require('net')
 
 const Misc = require('./Handler/Misc')
 const Config = require('./Config/Core')
+const Socket = require('./Library/Socket')
 
-const App = new Server()
+const Server = Net.createServer()
 
-App.on('connection', function(Client)
+Server.on('connection', function(Client)
 {
-    Client.on('simple', function(Data)
-    {
-        console.log(Data)
+    Client = new Socket(Client)
 
-        // console.log(require('util').inspect(Client, false, null))
+    Client.on('emit', function(Data)
+    {
+        console.log('Server Emit: ' + Data)
     })
 
-    Client.on('simplecallback', function(username, CallBack)
+    Client.on('emit2', function(Data, CallBack)
     {
-        CallBack(username === 'alejandro')
+        console.log('Server Emit2 Ack: ' + Data)
+        CallBack('Server Result Emit2')
     })
 
-    Client.on('stream', function(readStream, info, CallBack)
+    Client.on('stream', function(readStream, data, CallBack)
     {
-        var writeStream = require('fs').createWriteStream(info.name)
+        console.log('Server Stream With Ack: ' + data)
+
+        var writeStream = require('fs').createWriteStream(data.name)
         readStream.pipe(writeStream)
 
         writeStream.on('finish', function()
         {
-            CallBack('Image "' + info.name + '" stored!')
+            CallBack('Server Result Stream')
         })
     })
 })
 
-App.on('error', function(Error)
+Server.on('error', function(Error)
 {
     Misc.Analyze('ServerOnError', { Error: Error })
 })
 
-App.on('close', function()
+Server.on('close', function()
 {
     Misc.Analyze('ServerOnClose', { })
 })
 
-App.listen(Config.SERVER_PORT, '0.0.0.0', function()
+Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
 {
     Misc.Analyze('ServerOnListen', { })
 })
@@ -56,19 +60,19 @@ App.listen(Config.SERVER_PORT, '0.0.0.0', function()
 *
 */
 
-const Socket = require('fast-tcp').Socket
-const socket = new Socket({ host: 'localhost', port: Config.SERVER_PORT })
+const Socket2 = require('fast-tcp').Socket
+const socket = new Socket2({ host: 'localhost', port: Config.SERVER_PORT })
 
-socket.emit('simple', 'simple emit work')
+socket.emit('emit', 'Data e Emit')
 
-socket.emit('simplecallback', 'alejandro', function(response)
+socket.emit('emit2', 'Data e Emit2', function(response)
 {
-    console.log('simplecallback: ' + response)
+    console.log('Client Emit2 Ack: ' + response)
 })
 
 var writeStream = socket.stream('stream', { name: 'img-copy.jpg' }, function(response)
 {
-    console.log('stream works: ' + response)
+    console.log('Client Stream Ack: ' + response)
 })
 
 require('fs').createReadStream('./System/img.jpg').pipe(writeStream)
