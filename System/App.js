@@ -18,7 +18,7 @@ Server.on('connection', function(Client2)
 
     Client.on('SendMessage', function(Data, CallBack)
     {
-        CallBack('CallBack')
+        CallBack('CallBack' + Data)
     })
 
     Client.on('SendData', function(ReadStream, Data, CallBack)

@@ -1,15 +1,13 @@
 {
     "name": "channel-server",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Channel Server Powered By Ali Khazaee",
     "main": "App.js",
     "author": "Ali.Khazaee",
     "license": "Khazaee",
     "dependencies": {
-        "fast-tcp": "^3.3.2",
         "mongodb": "^3.0.8",
         "request": "^2.87.0",
-        "utjs": "^3.0.0",
         "winston": "^2.4.2"
     },
     "devDependencies": {
