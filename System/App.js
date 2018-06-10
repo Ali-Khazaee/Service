@@ -7,13 +7,13 @@ const Net = require('net')
 
 const Misc = require('./Handler/Misc')
 const Config = require('./Config/Core')
-const Socket = require('./Library/Socket')
+const Socket = require('./Handler/Socket')
 
 const Server = Net.createServer()
 
-Server.on('connection', function(Client)
+Server.on('connection', function(Client2)
 {
-    Client = new Socket(Client)
+    const Client = new Socket(Client2)
 
     Client.on('emit', function(Data)
     {
@@ -26,11 +26,11 @@ Server.on('connection', function(Client)
         CallBack('Server Result Emit2')
     })
 
-    Client.on('stream', function(readStream, data, CallBack)
+    Client.on('stream', function(readStream, Data, CallBack)
     {
-        console.log('Server Stream With Ack: ' + data)
+        console.log('Server Stream With Ack: ' + Data)
 
-        var writeStream = require('fs').createWriteStream(data.name)
+        var writeStream = require('fs').createWriteStream(Data.name)
         readStream.pipe(writeStream)
 
         writeStream.on('finish', function()

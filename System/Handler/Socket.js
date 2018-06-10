@@ -3,24 +3,40 @@
 const EventEmitter = require('events')
 const Readable = require('stream').Readable
 
+function Type()
+{
+
+}
+
+Type.DATA_TYPE_STRING = 1
+Type.DATA_TYPE_BINARY = 2
+Type.DATA_TYPE_INTEGER = 3
+Type.DATA_TYPE_DECIMAL = 4
+Type.DATA_TYPE_OBJECT = 5
+Type.DATA_TYPE_BOOLEAN = 6
+Type.DATA_TYPE_EMPTY = 7
+
+Type.MESSAGE_TYPE_ACK = 7
+Type.MESSAGE_TYPE_DATA = 2
+Type.MESSAGE_TYPE_DATA_WITH_ACK = 6
+Type.MESSAGE_TYPE_DATA_STREAM_CLOSE = 13
+Type.MESSAGE_TYPE_DATA_STREAM_OPEN_WITH_ACK = 14
+
 class Socket extends EventEmitter
 {
     constructor(Socket)
     {
         super()
 
+        this._Queue = [ ]
         this._Stream = { }
         this._MessageID = 1
         this._Socket = Socket
         this._Connected = true
 
-        this._reader = new Reader()
-
-        this._acks = { }
-
         this._Socket.on('data', (Chunk) =>
         {
-            const buffer = this._reader.read(Chunk)
+            const buffer = this.Read(Chunk)
 
             for (let I = 0; I < buffer.length; I++)
             {
@@ -28,22 +44,35 @@ class Socket extends EventEmitter
 
                 switch (Data.MessageType)
                 {
-                case Serializer.MT_DATA:
+                case Type.MESSAGE_TYPE_DATA:
                     this.emit(Data.Event, Data.Data)
                     break
-                case Serializer.MT_DATA_WITH_ACK:
+                case Type.MESSAGE_TYPE_DATA_WITH_ACK:
                     this.emit(Data.Event, Data.Data, this.AckCallback(Data.MessageID))
                     break
-                case Serializer.MT_DATA_STREAM_OPEN_WITH_ACK:
+                case Type.MESSAGE_TYPE_DATA_STREAM_OPEN_WITH_ACK:
                     this.emit(Data.Event, this.OpenDataStream(Data), Data.Data, this.AckCallback(Data.MessageID))
                     break
-                case Serializer.MT_DATA_STREAM:
+                case Type.MESSAGE_TYPE_DATA_STREAM:
                     this.TransmitDataStream(Data)
                     break
-                case Serializer.MT_DATA_STREAM_CLOSE:
+                case Type.MESSAGE_TYPE_DATA_STREAM_CLOSE:
                     this.CloseDataStream(Data)
                     break
                 }
+            }
+        })
+
+        this._Socket.on('connect', () =>
+        {
+            this._Connected = true
+
+            if (this._Queue.length > 0)
+            {
+                for (var i = 0; i < this._Queue.length; i++)
+                    this._Socket.write(this._Queue[i])
+
+                this._Queue.length = 0
             }
         })
 
@@ -52,6 +81,57 @@ class Socket extends EventEmitter
             this._Socket = null
             this._Connected = false
         })
+
+        this._Buffer = null
+        this._Offset = 0
+        this._ReadByte = 0
+    }
+
+    Read(Chunk)
+    {
+        let Buffers = []
+        let OffsetChunk = 0
+        let MessageLength = 0
+
+        while (OffsetChunk < Chunk.length)
+        {
+            if (this._ReadByte < 4)
+            {
+                for (; OffsetChunk < Chunk.length && this._ReadByte < 4; OffsetChunk++, this._ReadByte++)
+                    MessageLength |= Chunk[OffsetChunk] << (this._ReadByte * 8)
+
+                if (this._ReadByte === 4)
+                {
+                    this._Buffer = Buffer.allocUnsafe(4 + MessageLength)
+                    this._Buffer.writeUInt32LE(MessageLength, this._Offset)
+                    this._Offset += 4
+                }
+                else
+                    break
+            }
+
+            let ByteToRead = this._Buffer.length - this._ReadByte
+            let End = ByteToRead > (Chunk.length - OffsetChunk) ? Chunk.length : OffsetChunk + ByteToRead
+
+            Chunk.copy(this._Buffer, this._Offset, OffsetChunk, End)
+
+            const ByteRead = End - OffsetChunk
+
+            this._ReadByte += ByteRead
+            this._Offset += ByteRead
+
+            OffsetChunk = End
+
+            if (this._ReadByte < this._Buffer.length && this._ReadByte !== this._Buffer.length)
+                break
+
+            Buffers.push(this._Buffer)
+            this._Offset = 0
+            this._ReadByte = 0
+            MessageLength = 0
+        }
+
+        return Buffers
     }
 
     OpenDataStream(Data)
@@ -87,8 +167,12 @@ class Socket extends EventEmitter
 
     Send(Event, Data, MessageType, Option)
     {
+        const Buff = this.Serialize(Event, Data, MessageType, Option.MessageID)
+
         if (this._Connected)
-            return this._Socket.write(this.Serialize(Event, Data, MessageType, Option.MessageID))
+            return this._Socket.write(Buff)
+        else
+            this._Queue.push(Buff)
     }
 
     AckCallback(MessageID)
@@ -97,14 +181,14 @@ class Socket extends EventEmitter
 
         return function Callback(Data)
         {
-            _this.Send('', Data, Serializer.MT_ACK, { MessageID: MessageID })
+            _this.Send('', Data, Type.MESSAGE_TYPE_ACK, { MessageID: MessageID })
         }
     }
 
     Deserialize(buffer)
     {
         let Data
-        let Offset = 6 // TODO : This Should Be Fixed In Client And Server
+        let Offset = 6
         let DataType = buffer[Offset++]
         let MessageType = buffer[Offset++]
 
@@ -122,22 +206,22 @@ class Socket extends EventEmitter
 
         switch (DataType)
         {
-        case Serializer.DT_STRING:
+        case Type.DATA_TYPE_STRING:
             Data = buffer.toString(undefined, Offset, Offset + DataLength)
             break
-        case Serializer.DT_OBJECT:
+        case Type.DATA_TYPE_OBJECT:
             Data = JSON.parse(buffer.slice(Offset, Offset + DataLength).toString())
             break
-        case Serializer.DT_BINARY:
+        case Type.DATA_TYPE_BINARY:
             Data = buffer.slice(Offset, Offset + DataLength)
             break
-        case Serializer.DT_INTEGER:
+        case Type.DATA_TYPE_INTEGER:
             Data = buffer.readIntLE(Offset, DataLength)
             break
-        case Serializer.DT_DECIMAL:
+        case Type.DATA_TYPE_DECIMAL:
             Data = buffer.readDoubleLE(Offset)
             break
-        case Serializer.DT_BOOLEAN:
+        case Type.DATA_TYPE_BOOLEAN:
             Data = buffer[Offset]
         }
 
@@ -151,29 +235,29 @@ class Socket extends EventEmitter
         switch (typeof Data)
         {
         case 'string':
-            DataType = Serializer.DT_STRING
+            DataType = Type.DATA_TYPE_STRING
             break
         case 'number':
-            DataType = Data % 1 === 0 ? Serializer.DT_INTEGER : Serializer.DT_DECIMAL
+            DataType = Data % 1 === 0 ? Type.DATA_TYPE_INTEGER : Type.DATA_TYPE_DECIMAL
             break
         case 'object':
             if (Data === null)
-                DataType = Serializer.DT_EMPTY
+                DataType = Type.DATA_TYPE_EMPTY
             else if (Data instanceof Buffer)
-                DataType = Serializer.DT_BINARY
+                DataType = Type.DATA_TYPE_BINARY
             else
             {
                 Data = Buffer.from(JSON.stringify(Data))
-                DataType = Serializer.DT_OBJECT
+                DataType = Type.DATA_TYPE_OBJECT
             }
             break
         case 'boolean':
             Data = Data ? 1 : 0
-            DataType = Serializer.DT_BOOLEAN
+            DataType = Type.DATA_TYPE_BOOLEAN
             break
         default:
             Data = null
-            DataType = Serializer.DT_EMPTY
+            DataType = Type.DATA_TYPE_EMPTY
         }
 
         let EventLength = Buffer.byteLength(Event)
@@ -181,20 +265,20 @@ class Socket extends EventEmitter
 
         switch (DataType)
         {
-        case Serializer.DT_STRING:
+        case Type.DATA_TYPE_STRING:
             DataLength = Buffer.byteLength(Data)
             break
-        case Serializer.DT_BINARY:
-        case Serializer.DT_OBJECT:
+        case Type.DATA_TYPE_BINARY:
+        case Type.DATA_TYPE_OBJECT:
             DataLength = Data.length
             break
-        case Serializer.DT_INTEGER:
+        case Type.DATA_TYPE_INTEGER:
             DataLength = 6
             break
-        case Serializer.DT_DECIMAL:
+        case Type.DATA_TYPE_DECIMAL:
             DataLength = 8
             break
-        case Serializer.DT_BOOLEAN:
+        case Type.DATA_TYPE_BOOLEAN:
             DataLength = 1
             break
         }
@@ -206,7 +290,7 @@ class Socket extends EventEmitter
         buffer.writeUInt32LE(MessageLength, Offset)
         Offset += 4
 
-        buffer[Offset] = Serializer.VERSION
+        buffer[Offset] = 1
         Offset++
 
         buffer[Offset] = 0
@@ -232,20 +316,20 @@ class Socket extends EventEmitter
 
         switch (DataType)
         {
-        case Serializer.DT_STRING:
+        case Type.DATA_TYPE_STRING:
             buffer.write(Data, Offset, DataLength)
             break
-        case Serializer.DT_BINARY:
-        case Serializer.DT_OBJECT:
+        case Type.DATA_TYPE_BINARY:
+        case Type.DATA_TYPE_OBJECT:
             Data.copy(buffer, Offset, 0, DataLength)
             break
-        case Serializer.DT_INTEGER:
+        case Type.DATA_TYPE_INTEGER:
             buffer.writeIntLE(Data, Offset, DataLength)
             break
-        case Serializer.DT_DECIMAL:
+        case Type.DATA_TYPE_DECIMAL:
             buffer.writeDoubleLE(Data, Offset)
             break
-        case Serializer.DT_BOOLEAN:
+        case Type.DATA_TYPE_BOOLEAN:
             buffer[Offset] = Data
         }
 
@@ -254,116 +338,3 @@ class Socket extends EventEmitter
 }
 
 module.exports = Socket
-
-/*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*/
-
-class Serializer
-{
-
-}
-
-Serializer.VERSION = 1
-
-Serializer.DT_STRING = 1
-Serializer.DT_BINARY = 2
-Serializer.DT_INTEGER = 3
-Serializer.DT_DECIMAL = 4
-Serializer.DT_OBJECT = 5
-Serializer.DT_BOOLEAN = 6
-Serializer.DT_EMPTY = 7
-
-Serializer.MT_ERROR = 0
-Serializer.MT_REGISTER = 1
-Serializer.MT_DATA = 2
-Serializer.MT_DATA_TO_SOCKET = 3
-Serializer.MT_DATA_WITH_ACK = 6
-Serializer.MT_ACK = 7
-Serializer.MT_DATA_STREAM_OPEN = 11
-Serializer.MT_DATA_STREAM = 12
-Serializer.MT_DATA_STREAM_CLOSE = 13
-Serializer.MT_DATA_STREAM_OPEN_WITH_ACK = 14
-Serializer.MT_DATA_STREAM_OPEN_TO_SOCKET = 15
-
-function Reader()
-{
-    // Main buffer
-    this._buffer = null
-    this._offset = 0
-    this._bytesRead = 0
-    this._messageLength = 0
-
-    // Chunk
-    this._offsetChunk = 0
-}
-
-Reader.prototype.read = function(chunk)
-{
-    this._offsetChunk = 0
-    var buffers = []
-
-    while (this._offsetChunk < chunk.length)
-    {
-        if (this._bytesRead < 4)
-        {
-            if (this._readMessageLength(chunk))
-                this._createBuffer()
-            else
-                break
-        }
-
-        if (this._bytesRead < this._buffer.length && !this._readMessageContent(chunk))
-            break
-
-        // Buffer ready, store it and keep reading the chunk
-        buffers.push(this._buffer)
-        this._offset = 0
-        this._bytesRead = 0
-        this._messageLength = 0
-    }
-
-    return buffers
-}
-
-Reader.prototype._readMessageLength = function(chunk)
-{
-    for (; this._offsetChunk < chunk.length && this._bytesRead < 4; this._offsetChunk++, this._bytesRead++)
-        this._messageLength |= chunk[this._offsetChunk] << (this._bytesRead * 8)
-
-    return this._bytesRead === 4
-}
-
-Reader.prototype._readMessageContent = function(chunk)
-{
-    var bytesToRead = this._buffer.length - this._bytesRead
-    var bytesInChunk = chunk.length - this._offsetChunk
-    var end = bytesToRead > bytesInChunk ? chunk.length : this._offsetChunk + bytesToRead
-
-    chunk.copy(this._buffer, this._offset, this._offsetChunk, end)
-
-    var bytesRead = end - this._offsetChunk
-
-    this._bytesRead += bytesRead
-    this._offset += bytesRead
-    this._offsetChunk = end
-
-    return this._bytesRead === this._buffer.length
-}
-
-Reader.prototype._createBuffer = function()
-{
-    this._buffer = Buffer.allocUnsafe(4 + this._messageLength)
-    this._buffer.writeUInt32LE(this._messageLength, this._offset)
-    this._offset += 4
-}

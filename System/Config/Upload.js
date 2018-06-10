@@ -1,3 +1,5 @@
+'use strict'
+
 module.exports =
 {
     UPLOAD_SERVER_1: 'http://198.50.232.192:9000',

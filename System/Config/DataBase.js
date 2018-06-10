@@ -1,3 +1,5 @@
+'use strict'
+
 module.exports =
 {
     HOST: 'ds261138.mlab.com',
