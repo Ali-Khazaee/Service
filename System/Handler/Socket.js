@@ -188,7 +188,7 @@ class Socket extends EventEmitter
     Deserialize(buffer)
     {
         let Data
-        let Offset = 6
+        let Offset = 4
         let DataType = buffer[Offset++]
         let MessageType = buffer[Offset++]
 
@@ -283,18 +283,12 @@ class Socket extends EventEmitter
             break
         }
 
-        let MessageLength = 8 + 2 + EventLength + 4 + DataLength
-        let buffer = Buffer.alloc(4 + MessageLength)
+        const MessageLength = 4 + 1 + 1 + 4 + 2 + EventLength + 4 + DataLength
+        const buffer = Buffer.alloc(4 + MessageLength)
         let Offset = 0
 
         buffer.writeUInt32LE(MessageLength, Offset)
         Offset += 4
-
-        buffer[Offset] = 1
-        Offset++
-
-        buffer[Offset] = 0
-        Offset++
 
         buffer[Offset] = DataType
         Offset++

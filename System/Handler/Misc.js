@@ -5,11 +5,12 @@ const Winston = require('winston')
 
 Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Storage/Debug.log' }) ] })
 
-function Analyze(Tag, Data)
+function Analyze(Tag, Data, Level)
 {
+    Level = Level || 'info'
     Data.CreatedTime = Time()
 
-    console.log(Tag + ' - ' + Util.inspect(Data, false, null))
+    Winston.log(Level, Tag + ' - ' + Util.inspect(Data, false, null))
 }
 
 function IsUndefined(Value)
@@ -127,21 +128,3 @@ module.exports.IsUndefined = IsUndefined
 module.exports.IsDefined = IsDefined
 module.exports.Analyze = Analyze
 module.exports.Time = Time
-
-/*
-
-const EmailPattern = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-?\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/
-
-function IsValidEmail (Email) {
-  if (Email === undefined || Email === '' || Email.length > 254) { return true }
-
-  if (!EmailPattern.test(Email)) { return true }
-
-  const Parts = Email.split('@')
-
-  if (Parts[0].length > 64) { return true }
-
-  return Parts[1].split('.').some(function (Part) { return Part.length > 63 })
-}
-
-*/
