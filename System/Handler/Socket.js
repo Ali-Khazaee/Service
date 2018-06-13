@@ -3,26 +3,8 @@
 const EventEmitter = require('events')
 const Readable = require('stream').Readable
 
+const Type = require('./Type').Socket
 const Misc = require('./Misc')
-
-function Type()
-{
-
-}
-
-Type.DATA_TYPE_STRING = 1
-Type.DATA_TYPE_BINARY = 2
-Type.DATA_TYPE_INTEGER = 3
-Type.DATA_TYPE_DECIMAL = 4
-Type.DATA_TYPE_OBJECT = 5
-Type.DATA_TYPE_BOOLEAN = 6
-Type.DATA_TYPE_EMPTY = 7
-
-Type.MESSAGE_TYPE_ACK = 7
-Type.MESSAGE_TYPE_DATA = 2
-Type.MESSAGE_TYPE_DATA_WITH_ACK = 6
-Type.MESSAGE_TYPE_DATA_STREAM_CLOSE = 13
-Type.MESSAGE_TYPE_DATA_STREAM_OPEN_WITH_ACK = 14
 
 class Socket extends EventEmitter
 {
@@ -86,17 +68,8 @@ class Socket extends EventEmitter
         {
             this._Socket = null
             this._Connected = false
+            this.emit('disconnect')
         })
-    }
-
-    use(fn)
-    {
-        this.GoNext = (stack => next => stack(fn.bind(this, next.bind(this))))(this.GoNext)
-    }
-
-    GoNext(next)
-    {
-        next()
     }
 
     Read(Chunk)

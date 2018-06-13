@@ -10,7 +10,7 @@ const UniqueName = require('uuid/v4')
 
 const Misc = require('./Handler/Misc')
 const Auth = require('./Handler/Auth')
-const Type = require('./Handler/Type')
+const Type = require('./Handler/Type').Message
 const Config = require('./Config/Core')
 const Socket = require('./Handler/Socket')
 const Upload = require('./Handler/Upload')
@@ -39,30 +39,18 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
         Server.on('connection', function(Client2)
         {
-            Misc.Analyze('OnClientConnect', { IP: Client2.request.connection.remoteAddress })
+            Misc.Analyze('OnClientConnect', { IP: Client2.remoteAddress })
 
             const Client = new Socket(Client2)
 
-            Client.use(function(next)
+            Client.on('disconnect', function(Client)
             {
-                console.log('Use Called')
-                next()
-            })
-
-            Client.GoNext(function()
-            {
-                console.log('GoNext Called')
-            })
-
-            Client.on('disconnect', function()
-            {
-                Misc.Analyze('OnClientDisconnect', { IP: Client2.request.connection.remoteAddress })
+                Misc.Analyze('OnClientDisconnect', { IP: Client2.remoteAddress })
                 ClientManager.Remove(Client)
             })
 
             Client.on('Authentication', async function(Data, CallBack)
             {
-                console.log('Authentication Called')
                 if (Misc.IsDefined(Client.__Owner))
                 {
                     CallBack({ Result: 1 })
@@ -114,6 +102,14 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
             Misc.Analyze('OnServerListen', { })
+
+            const Socket2 = require('fast-tcp').Socket
+            const socket = new Socket2({ host: 'localhost', port: Config.SERVER_PORT })
+
+            socket.emit('Authentication', 'Data e Emit2', function(response)
+            {
+                console.log('Client Emit2 Ack: ' + response)
+            })
         })
 
         /*
