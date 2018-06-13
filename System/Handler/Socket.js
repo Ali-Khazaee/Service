@@ -3,6 +3,8 @@
 const EventEmitter = require('events')
 const Readable = require('stream').Readable
 
+const Misc = require('./Misc')
+
 function Type()
 {
 
@@ -28,11 +30,15 @@ class Socket extends EventEmitter
     {
         super()
 
+        this._Offset = 0
         this._Queue = [ ]
         this._Stream = { }
+        this._ReadByte = 0
+        this._Buffer = null
         this._MessageID = 1
         this._Socket = Socket
         this._Connected = true
+        this._ID = Misc.RandomString(15)
 
         this._Socket.on('data', (Chunk) =>
         {
@@ -81,10 +87,16 @@ class Socket extends EventEmitter
             this._Socket = null
             this._Connected = false
         })
+    }
 
-        this._Buffer = null
-        this._Offset = 0
-        this._ReadByte = 0
+    use(fn)
+    {
+        this.GoNext = (stack => next => stack(fn.bind(this, next.bind(this))))(this.GoNext)
+    }
+
+    GoNext(next)
+    {
+        next()
     }
 
     Read(Chunk)
