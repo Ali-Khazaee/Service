@@ -1,9 +1,6 @@
 'use strict'
 
-//
-// Libraries
-//
-const FileSystem = require('fs')
+const FS = require('fs')
 const Request = require('request')
 
 const Misc = require('../Handler/Misc')
@@ -96,7 +93,7 @@ function UploadFile(Path)
             return
         }
 
-        const File = FileSystem.createReadStream(Path)
+        const File = FS.createReadStream(Path)
 
         Request.post({ url: ServerURL(ServerResult.ID) + '/file', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
@@ -126,7 +123,7 @@ function UploadVideo(Path)
             return
         }
 
-        const File = FileSystem.createReadStream(Path)
+        const File = FS.createReadStream(Path)
 
         Request.post({ url: ServerURL(ServerResult.ID) + '/video', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
@@ -156,7 +153,7 @@ function UploadImage(Path)
             return
         }
 
-        const File = FileSystem.createReadStream(Path)
+        const File = FS.createReadStream(Path)
 
         Request.post({ url: ServerURL(ServerResult.ID) + '/image', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
@@ -186,7 +183,7 @@ function UploadVoice(Path)
             return
         }
 
-        const File = FileSystem.createReadStream(Path)
+        const File = FS.createReadStream(Path)
 
         Request.post({ url: ServerURL(ServerResult.ID) + '/voice', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {

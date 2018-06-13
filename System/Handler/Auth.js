@@ -2,8 +2,8 @@
 
 const Crypto = require('crypto')
 
-const Config = require('../Config/Core')
 const Misc = require('./Misc')
+const Config = require('../Config/Core')
 
 function Create(Owner)
 {
@@ -19,7 +19,7 @@ function Create(Owner)
         {
             if (Error)
             {
-                Misc.Analyze('OnDataBaseWarning', { Tag: 'Auth-Create', Error: Error })
+                Misc.Analyze('OnDBQuery', { Tag: 'Auth-Create', Error: Error }, 'error')
                 resolve({ Result: 1 })
                 return
             }
@@ -60,8 +60,9 @@ function Verify(Key)
         {
             if (Error)
             {
-                Misc.Analyze('OnDBWarning', { Tag: 'Auth-Verify', Error: Error })
-                return { Result: 4 }
+                Misc.Analyze('OnDBQuery', { Tag: 'Auth-Verify', Error: Error }, 'error')
+                resolve({ Result: 4 })
+                return
             }
 
             if (Misc.IsUndefined(Result[0]))
@@ -83,7 +84,7 @@ function Delete(Key)
         {
             if (Error)
             {
-                Misc.Analyze('OnDataBaseWarning', { Tag: 'Auth-Delete', Error: Error })
+                Misc.Analyze('OnDBQuery', { Tag: 'Auth-Delete', Error: Error }, 'error')
                 resolve({ Result: 1 })
                 return
             }

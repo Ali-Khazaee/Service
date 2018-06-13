@@ -10,12 +10,12 @@ const UniqueName = require('uuid/v4')
 
 const Misc = require('./Handler/Misc')
 const Auth = require('./Handler/Auth')
-const Type = require('./Handler/Type').Message
 const Config = require('./Config/Core')
 const Socket = require('./Handler/Socket')
-const Upload = require('./Handler/Upload')
 const DBConfig = require('./Config/DataBase')
-const ClientManager = require('./Handler/Client')
+const UploadHandler = require('./Handler/UploadHandler')
+const ClientManager = require('./Handler/ClientManager')
+const MessageType = require('./Handler/TypeList').Message
 
 MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
     {
@@ -70,21 +70,58 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                 ClientManager.Add(Client)
 
                 CallBack({ Result: 0 })
+
+                Misc.Analyze('OnAuthentication', { })
             })
 
             Client.on('SendMessage', function(Data, CallBack)
             {
-                CallBack('CallBack' + Data)
-            })
-
-            Client.on('SendData', function(ReadStream, Data, CallBack)
-            {
-                var WriteStream = FS.createWriteStream(Data.name)
-                ReadStream.pipe(WriteStream)
-
-                WriteStream.on('finish', function()
+                if (Misc.IsInvalidJSON(Data))
                 {
-                    CallBack('CallBack')
+                    CallBack({ Result: 1 })
+                    return
+                }
+
+                if (Misc.IsUndefined(Data.To) || Misc.IsUndefined(Data.Message))
+                {
+                    CallBack({ Result: 2 })
+                    return
+                }
+
+                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Data.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(async function(Error, Result)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('OnDBQuery', { Tag: 'SendMessage', Error: Error }, 'error')
+                        CallBack({ Result: -1 })
+                        return
+                    }
+
+                    if (Misc.IsUndefined(Result[0]))
+                    {
+                        CallBack({ Result: 3 })
+                        return
+                    }
+
+                    if (Data.Message.length > 4096)
+                        Data.Message = Data.Message.substring(0, 4096)
+
+                    const Time = Misc.Time()
+                    const Message = { From: global.MongoID(Client.__Owner), To: global.MongoID(Data.To), Message: Data.Message, Type: MessageType.TEXT, Time: Time }
+
+                    if (Misc.IsDefined(Data.ReplyID))
+                        Message.Reply = Data.ReplyID
+
+                    global.DB.collection('message').insertOne(Message)
+
+                    const To = ClientManager.Find(Message.To)
+
+                    if (Misc.IsDefined(To))
+                        To.emit(Message)
+
+                    CallBack({ Result: 0 })
+
+                    Misc.Analyze('SendMessage', { })
                 })
             })
         })
@@ -102,23 +139,24 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
             Misc.Analyze('OnServerListen', { })
-
-            const Socket2 = require('fast-tcp').Socket
-            const socket = new Socket2({ host: 'localhost', port: Config.SERVER_PORT })
-
-            socket.emit('Authentication', 'Data e Emit2', function(response)
-            {
-                console.log('Client Emit2 Ack: ' + response)
-            })
         })
+    })
 
-        /*
-        IO.on('connection', function(Client)
-        {
-            Client.use(function(Packet, Next)
+/*
+    Result List:
+    -1 : DataBase Warning
+*/
+
+/*
+            Client.on('SendData', function(ReadStream, Data, CallBack)
             {
-                // if (Packet[0] === 'Authentication' || Misc.IsDefined(Client.__Owner))
-                Next()
+                var WriteStream = FS.createWriteStream(Data.name)
+                ReadStream.pipe(WriteStream)
+
+                WriteStream.on('finish', function()
+                {
+                    CallBack('CallBack')
+                })
             })
 
             Client.on('SendMessage', function(Data, CallBack)
@@ -305,9 +343,3 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
             })
         })
         */
-    })
-
-/*
-    Result List:
-    -1 : DataBase Warning
-*/

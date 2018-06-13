@@ -3,7 +3,7 @@
 const EventEmitter = require('events')
 const Readable = require('stream').Readable
 
-const Type = require('./Type').Socket
+const Type = require('./TypeList').Socket
 const Misc = require('./Misc')
 
 class Socket extends EventEmitter
@@ -29,6 +29,15 @@ class Socket extends EventEmitter
             for (let I = 0; I < buffer.length; I++)
             {
                 const Data = this.Deserialize(buffer[I])
+
+                switch (Data.Event)
+                {
+                case 'Authentication':
+                    break
+                default:
+                    if (Misc.IsUndefined(this.__Owner))
+                        return
+                }
 
                 switch (Data.MessageType)
                 {
