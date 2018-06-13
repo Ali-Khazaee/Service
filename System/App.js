@@ -49,6 +49,55 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                 ClientManager.Remove(Client)
             })
 
+            Client.on('SignIn', function(Data, CallBack)
+            {
+                if (Misc.IsInvalidJSON(Data))
+                {
+                    CallBack({ Result: 1 })
+                    return
+                }
+
+                if (Misc.IsUndefined(Data.Username))
+                {
+                    CallBack({ Result: 2 })
+                    return
+                }
+
+                global.DB.collection('account').findOne({ Username: Data.Username }, async function(Error, Document)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('OnDBQuery', { Tag: 'SignIn', Error: Error }, 'error')
+                        CallBack({ Result: -1 })
+                        return
+                    }
+
+                    if (Misc.IsDefined(Document))
+                    {
+                        CallBack({ Result: 3 })
+                        return
+                    }
+
+                    const Register = await global.DB.collection('account').insertOne({ Username: Data.Username })
+                    const AuthResult = await Auth.Create(Register.insertedId)
+
+                    if (AuthResult.Result !== 0)
+                    {
+                        await global.DB.collection('account').deleteOne({ Username: Data.Username })
+                        CallBack({ Result: 4 })
+                        return
+                    }
+
+                    Client.__Owner = Register.insertedId
+
+                    ClientManager.Add(Client)
+
+                    CallBack({ Result: 0, ID: Register.insertedId, Key: AuthResult.Key })
+
+                    Misc.Analyze('OnSignIn', { })
+                })
+            })
+
             Client.on('Authentication', async function(Data, CallBack)
             {
                 if (Misc.IsDefined(Client.__Owner))
@@ -139,6 +188,14 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
             Misc.Analyze('OnServerListen', { })
+
+            const Socket2 = require('fast-tcp').Socket
+            const socket = new Socket2({ host: 'localhost', port: Config.SERVER_PORT })
+
+            socket.emit('SignIn', { Username: 'ali' }, function(Result)
+            {
+                console.log(Result)
+            })
         })
     })
 

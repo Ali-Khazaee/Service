@@ -15,7 +15,7 @@ function Analyze(Tag, Data, Level)
 
 function IsUndefined(Value)
 {
-    if (typeof Value === 'undefined' || Value == null || Value === undefined || Value === null)
+    if (typeof Value === 'undefined' || Value === undefined || Value == null || Value === null)
         return true
 
     if (typeof Value === 'string' && Value.length > 0)
@@ -30,7 +30,7 @@ function IsUndefined(Value)
     if (typeof Value === 'object' && Value.constructor === Array && Value.length === 0)
         return true
 
-    if (typeof Value === 'object' && Value.constructor === global.MongoID)
+    if (global.MongoID.isValid(Value))
         return false
 
     if (Value.toString === Object.prototype.toString)
@@ -80,6 +80,9 @@ function ReverseString(Value)
 
 function IsInvalidJSON(Data)
 {
+    if (typeof Data === 'object')
+        return false
+
     try
     {
         JSON.parse(Data)

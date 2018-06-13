@@ -3,11 +3,11 @@
     [
       {
         "name": "Channel Server",
-        "script": "./App.js",
+        "script": "./System/App.js",
         "exec_mode": "cluster",
         "instances": "max",
-        "error_file": "./Error.log",
-        "out_file": "./Detail.log",
+        "error_file": "./Storage/Error.log",
+        "out_file": "./Storage/Detail.log",
         "env":
         {
           "NODE_ENV": "production"

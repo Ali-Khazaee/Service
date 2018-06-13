@@ -32,6 +32,7 @@ class Socket extends EventEmitter
 
                 switch (Data.Event)
                 {
+                case 'SignIn':
                 case 'Authentication':
                     break
                 default:

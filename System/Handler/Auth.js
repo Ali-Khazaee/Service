@@ -9,6 +9,12 @@ function Create(Owner)
 {
     return new Promise(function(resolve)
     {
+        if (!global.MongoID.isValid(Owner))
+        {
+            resolve({ Result: 1 })
+            return
+        }
+
         const Segment = Buffer.from(JSON.stringify({ Owner: Owner, CreateTime: Misc.Time() })).toString('base64')
         const Signer = Crypto.createSign('sha256')
         Signer.update(Misc.ReverseString(Segment))
@@ -20,7 +26,7 @@ function Create(Owner)
             if (Error)
             {
                 Misc.Analyze('OnDBQuery', { Tag: 'Auth-Create', Error: Error }, 'error')
-                resolve({ Result: 1 })
+                resolve({ Result: 2 })
                 return
             }
 
