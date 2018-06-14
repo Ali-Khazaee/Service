@@ -1,20 +1,24 @@
 'use strict'
 
+const Misc = require('./Misc')
+
 const ClientList = new Map()
 
 function Add(Client)
 {
-    ClientList.set(Client.id, Client)
+    if (Misc.IsDefined(Client._ID))
+        ClientList.set(Client._ID, Client)
 }
 
 function Remove(Client)
 {
-    ClientList.delete(Client.id)
+    if (Misc.IsDefined(Client._ID))
+        ClientList.delete(Client._ID)
 }
 
 function IsConnected(Client)
 {
-    return ClientList.has(Client.id)
+    return Misc.IsDefined(Client._ID) ? ClientList.has(Client._ID) : false
 }
 
 function Find(Owner)

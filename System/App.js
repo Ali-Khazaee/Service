@@ -17,6 +17,11 @@ const UploadHandler = require('./Handler/UploadHandler')
 const ClientManager = require('./Handler/ClientManager')
 const MessageType = require('./Handler/TypeList').Message
 
+process.on('uncaughtException', function(Error)
+{
+    Misc.Analyze('OnException', { Error: Error }, 'error')
+})
+
 MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
     {
         reconnectTries: Number.MAX_VALUE,
@@ -32,8 +37,8 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
         Misc.Analyze('OnDBConnect', { })
 
-        global.DB = DataBase.db(DBConfig.DataBase)
         global.MongoID = MongoDB.ObjectID
+        global.DB = DataBase.db(DBConfig.DataBase)
 
         const Server = Net.createServer()
 
@@ -188,14 +193,6 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
             Misc.Analyze('OnServerListen', { })
-
-            const Socket2 = require('fast-tcp').Socket
-            const socket = new Socket2({ host: 'localhost', port: Config.SERVER_PORT })
-
-            socket.emit('SignIn', { Username: 'ali' }, function(Result)
-            {
-                console.log(Result)
-            })
         })
     })
 

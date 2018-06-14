@@ -3,8 +3,8 @@
 const EventEmitter = require('events')
 const Readable = require('stream').Readable
 
-const Type = require('./TypeList').Socket
 const Misc = require('./Misc')
+const Type = require('./TypeList').Socket
 
 class Socket extends EventEmitter
 {
@@ -74,11 +74,16 @@ class Socket extends EventEmitter
             }
         })
 
-        this._Socket.on('close', (Error) =>
+        this._Socket.on('close', () =>
         {
-            this._Socket = null
+            this.emit('disconnect', this._Socket)
             this._Connected = false
-            this.emit('disconnect')
+            this._Socket = null
+        })
+
+        this._Socket.on('error', (Error) =>
+        {
+            Misc.Analyze('OnClientError', { Error: Error }, 'warning')
         })
     }
 
