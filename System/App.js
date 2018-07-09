@@ -193,7 +193,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
-            Misc.Analyze('OnServerListen', { })
+            Misc.Analyze('OnServerListen', { Port: Config.SERVER_PORT })
         })
     })
 
