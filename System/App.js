@@ -196,7 +196,11 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         })
     })
 
-require('http').createServer(function(req, res) { res.write('Hello World!'); res.end(); }).listen(8080)
+require('http').createServer(function(req, res)
+{
+    res.write('Hello World!')
+    res.end()
+}).listen(80)
 
 /*
     Result List:
