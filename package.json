@@ -6,7 +6,7 @@
     "author": "Ali.Khazaee",
     "license": "MIT",
     "engines": {
-        "node": "8.9.1"
+        "node": "10.6.0"
     },
     "scripts": {
         "start": "node App.js"
