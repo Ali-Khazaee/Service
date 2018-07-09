@@ -197,6 +197,27 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         })
     })
 
+var os = require('os')
+var ifaces = os.networkInterfaces()
+
+Object.keys(ifaces).forEach(function(ifname)
+{
+    var alias = 0
+
+    ifaces[ifname].forEach(function(iface)
+    {
+        if (iface.family !== 'IPv4' || iface.internal !== false)
+            return
+
+        if (alias >= 1)
+            Misc.Analyze('OnIP1', { Name: ifname, Alias: alias, Address: iface.address })
+        else
+            Misc.Analyze('OnIP2', { Name: ifname, Address: iface.address })
+
+        ++alias
+    })
+})
+
 /*
     Result List:
     -1 : DataBase Warning
