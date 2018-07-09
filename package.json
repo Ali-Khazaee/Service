@@ -4,7 +4,13 @@
     "description": "Channel Server Powered By Ali Khazaee",
     "main": "App.js",
     "author": "Ali.Khazaee",
-    "license": "Khazaee",
+    "license": "MIT",
+    "engines": {
+        "node": "8.9.1"
+    },
+    "scripts": {
+        "start": "node App.js"
+    },
     "dependencies": {
         "mongodb": "^3.0.8",
         "request": "^2.87.0",
