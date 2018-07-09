@@ -25,7 +25,8 @@ process.on('uncaughtException', function(Error)
 MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
     {
         reconnectTries: Number.MAX_VALUE,
-        reconnectInterval: 2000
+        reconnectInterval: 2000,
+        useNewUrlParser: true
     },
     function(Error, DataBase)
     {
@@ -200,7 +201,7 @@ require('http').createServer(function(req, res)
 {
     res.write('Hello World!')
     res.end()
-}).listen(80)
+}).listen(35123)
 
 /*
     Result List:
