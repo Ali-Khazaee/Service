@@ -196,6 +196,8 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
         })
     })
 
+require('http').createServer(function(req, res) { res.write('Hello World!'); res.end(); }).listen(8080)
+
 /*
     Result List:
     -1 : DataBase Warning
