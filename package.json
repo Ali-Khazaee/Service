@@ -2,14 +2,14 @@
     "name": "channel-server",
     "version": "0.0.4",
     "description": "Channel Server Powered By Ali Khazaee",
-    "main": "App.js",
+    "main": "./System/App.js",
     "author": "Ali.Khazaee",
     "license": "MIT",
     "engines": {
         "node": "10.6.0"
     },
     "scripts": {
-        "start": "node App.js"
+        "start": "node ./System/App.js"
     },
     "dependencies": {
         "mongodb": "^3.0.8",
