@@ -100,7 +100,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
                     CallBack({ Result: 0, ID: Register.insertedId, Key: AuthResult.Key })
 
-                    Misc.Analyze('OnSignIn', { })
+                    Misc.API('OnSignIn', { })
                 })
             })
 
@@ -126,7 +126,67 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
                 CallBack({ Result: 0 })
 
-                Misc.Analyze('OnAuthentication', { })
+                Misc.API('OnAuthentication', { })
+            })
+
+            Client.on('GetMessage', function(Data, CallBack)
+            {
+                if (Misc.IsInvalidJSON(Data))
+                {
+                    CallBack({ Result: 1 })
+                    return
+                }
+
+                Data = JSON.parse(Data)
+
+                if (Misc.IsUndefined(Data.Who) || Misc.IsInvalidID(Data.Who))
+                {
+                    CallBack({ Result: 2 })
+                    return
+                }
+
+                Data.Skip = parseInt(Data.Skip || 0)
+
+                // $or: [ { $and: [ { From: global.MongoID(Client.__Owner) }, { To: global.MongoID(Data.Who) } ] }, { $and: [ { From: global.MongoID(Data.Who) }, { To: global.MongoID(Client.__Owner) } ] } ]
+
+                global.DB.collection('message').find({ }).sort({ Time: 1 }).skip(Data.Skip).limit(10).toArray(async function(Error, Result)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('OnDBQuery', { Tag: 'GetMessage', Error: Error }, 'error')
+                        CallBack({ Result: -1 })
+                        return
+                    }
+
+                    for (let I = 0; I < Result.length; I++)
+                    {
+                        global.DB.collection('message').find({ $and: [ { _id: Result[I]._id }, { Delivery: { $exists: false } } ] }).toArray(function(Error2, Result2)
+                        {
+                            if (Error2)
+                            {
+                                Misc.Analyze('OnDBQuery', { Tag: 'GetMessage', Error: Error2 }, 'error')
+                                return
+                            }
+
+                            if (Misc.IsUndefined(Result2[0]))
+                                return
+
+                            const From = ClientManager.Find(Result2[0].From)
+
+                            if (Misc.IsDefined(From))
+                                From.emit(Message)
+                        })
+                    }
+
+                    CallBack({ Result: 0, Data: Result })
+
+                    Misc.API('GetMessage', { })
+                })
+            })
+
+            Client.on('SendMessage2', function(Data, CallBack)
+            {
+                Misc.API('SendMessage2QQ', { Data: Data })
             })
 
             Client.on('SendMessage', function(Data, CallBack)
@@ -137,13 +197,15 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                     return
                 }
 
-                if (Misc.IsUndefined(Data.To) || Misc.IsUndefined(Data.Message))
+                Data = JSON.parse(Data)
+
+                if (Misc.IsUndefined(Data.To) || Misc.IsInvalidID(Data.To) || Misc.IsUndefined(Data.Message))
                 {
                     CallBack({ Result: 2 })
                     return
                 }
 
-                global.DB.collection('account').aggregate([ { $match: { _id: global.MongoID(Data.To) } }, { $limit: 1 }, { $project: { _id: 0, Owner: 1 } } ]).toArray(async function(Error, Result)
+                global.DB.collection('account').find({ '_id': global.MongoID(Data.To) }).limit(1).project({ _id: 1 }).toArray(async function(Error, Result)
                 {
                     if (Error)
                     {
@@ -161,22 +223,27 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                     if (Data.Message.length > 4096)
                         Data.Message = Data.Message.substring(0, 4096)
 
-                    const Time = Misc.Time()
+                    const Time = Misc.TimeMili()
                     const Message = { From: global.MongoID(Client.__Owner), To: global.MongoID(Data.To), Message: Data.Message, Type: MessageType.TEXT, Time: Time }
 
                     if (Misc.IsDefined(Data.ReplyID))
                         Message.Reply = Data.ReplyID
 
-                    global.DB.collection('message').insertOne(Message)
-
                     const To = ClientManager.Find(Message.To)
 
                     if (Misc.IsDefined(To))
+                    {
                         To.emit(Message)
+                        Message.Delivery = Time
+                    }
 
-                    CallBack({ Result: 0 })
+                    Client.emit('SendMessage2', Message)
 
-                    Misc.Analyze('SendMessage', { })
+                    global.DB.collection('message').insertOne(Message)
+
+                    CallBack({ Result: 0, ID: Message._id, Time: Time, Delivery: Message.Delivery })
+
+                    Misc.API('SendMessage', { })
                 })
             })
         })
@@ -193,30 +260,9 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
-            Misc.Analyze('OnServerListen', { Port: Config.SERVER_PORT })
+            Misc.Analyze('OnServerListen', { })
         })
     })
-
-var os = require('os')
-var ifaces = os.networkInterfaces()
-
-Object.keys(ifaces).forEach(function(ifname)
-{
-    var alias = 0
-
-    ifaces[ifname].forEach(function(iface)
-    {
-        if (iface.family !== 'IPv4' || iface.internal !== false)
-            return
-
-        if (alias >= 1)
-            Misc.Analyze('OnIP1', { Name: ifname, Alias: alias, Address: iface.address })
-        else
-            Misc.Analyze('OnIP2', { Name: ifname, Address: iface.address })
-
-        ++alias
-    })
-})
 
 /*
     Result List:

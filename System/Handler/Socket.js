@@ -30,6 +30,7 @@ class Socket extends EventEmitter
             {
                 const Data = this.Deserialize(buffer[I])
 
+                /*
                 switch (Data.Event)
                 {
                 case 'SignIn':
@@ -39,6 +40,9 @@ class Socket extends EventEmitter
                     if (Misc.IsUndefined(this.__Owner))
                         return
                 }
+                */
+
+                Misc.API('QQ', { Data: Data })
 
                 switch (Data.MessageType)
                 {

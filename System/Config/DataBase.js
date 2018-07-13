@@ -2,9 +2,9 @@
 
 module.exports =
 {
-    HOST: 'ds261138.mlab.com',
-    PORT: 61138,
+    HOST: '157.119.190.112',
+    PORT: 27017,
     DATABASE: 'channel',
-    USERNAME: 'username',
-    PASSWORD: 'password'
+    USERNAME: 'channel',
+    PASSWORD: 'channel123'
 }
