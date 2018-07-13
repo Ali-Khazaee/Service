@@ -171,10 +171,11 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                             if (Misc.IsUndefined(Result2[0]))
                                 return
 
+                            const Time = Misc.TimeMili()
                             const From = ClientManager.Find(Result2[0].From)
 
                             if (Misc.IsDefined(From))
-                                From.emit(Message)
+                                From.emit('OnDelivery', { ID: Result2[0]._id, Delivery: Time })
                         })
                     }
 
@@ -182,11 +183,6 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
                     Misc.API('GetMessage', { })
                 })
-            })
-
-            Client.on('SendMessage2', function(Data, CallBack)
-            {
-                Misc.API('SendMessage2QQ', { Data: Data })
             })
 
             Client.on('SendMessage', function(Data, CallBack)
@@ -237,7 +233,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                         Message.Delivery = Time
                     }
 
-                    Client.emit('SendMessage2', Message)
+                    Client.Send2('SendMessage2', { Name: 'Ali' })
 
                     global.DB.collection('message').insertOne(Message)
 

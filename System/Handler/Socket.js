@@ -47,7 +47,7 @@ class Socket extends EventEmitter
                 switch (Data.MessageType)
                 {
                 case Type.MESSAGE_TYPE_DATA:
-                    this.emit(Data.Event, Data.Data)
+                    this.emit(Data.Event, Data.Data, () => null)
                     break
                 case Type.MESSAGE_TYPE_DATA_WITH_ACK:
                     this.emit(Data.Event, Data.Data, this.AckCallback(Data.MessageID))
@@ -142,7 +142,7 @@ class Socket extends EventEmitter
     {
         const _this = this
         const ReadStream = new Readable({
-            read: function(size)
+            read: function()
             {
                 if (_this._Socket.isPaused())
                     _this._Socket.resume()
@@ -167,6 +167,11 @@ class Socket extends EventEmitter
 
         ReadStream.push(null)
         delete this._Stream[Data.MessageID]
+    }
+
+    Send2(Event, Data)
+    {
+        this.Send(Event, Data, Type.MESSAGE_TYPE_DATA, { MessageID: 0 })
     }
 
     Send(Event, Data, MessageType, Option)
