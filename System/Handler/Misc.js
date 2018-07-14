@@ -5,20 +5,12 @@ const Winston = require('winston')
 
 Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Storage/Debug.log' }) ] })
 
-function Analyze(Tag, Data, Level)
+function Analyze(Tag, Data)
 {
-    Level = Level || 'warning'
+    Data = Data || { }
     Data.CreatedTime = Time()
 
-    Winston.log(Level, Tag + ' - ' + Util.inspect(Data, false, null))
-}
-
-function API(Tag, Data, Level)
-{
-    Level = Level || 'info'
-    Data.CreatedTime = Time()
-
-    Winston.log(Level, 'API-' + Tag + ' - ' + Util.inspect(Data, false, null))
+    Winston.log('error', Tag + ' - ' + Util.inspect(Data, false, null))
 }
 
 function IsUndefined(Value)
@@ -157,4 +149,3 @@ module.exports.IsInvalidID = IsInvalidID
 module.exports.Analyze = Analyze
 module.exports.TimeMili = TimeMili
 module.exports.Time = Time
-module.exports.API = API

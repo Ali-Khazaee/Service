@@ -3,23 +3,24 @@
 // Environment
 process.env.NODE_ENV = 'production'
 
-const FS = require('fs')
+// const FS = require('fs')
 const Net = require('net')
 const MongoDB = require('mongodb')
-const UniqueName = require('uuid/v4')
+// const UniqueName = require('uuid/v4')
 
 const Misc = require('./Handler/Misc')
-const Auth = require('./Handler/Auth')
+// const Auth = require('./Handler/Auth')
 const Config = require('./Config/Core')
 const Socket = require('./Handler/Socket')
+const Packet = require('./Handler/Packet')
 const DBConfig = require('./Config/DataBase')
-const UploadHandler = require('./Handler/UploadHandler')
-const ClientManager = require('./Handler/ClientManager')
-const MessageType = require('./Handler/TypeList').Message
+// const UploadHandler = require('./Handler/UploadHandler')
+// const ClientManager = require('./Handler/ClientManager')
+// const MessageType = require('./Handler/TypeList').Message
 
 process.on('uncaughtException', function(Error)
 {
-    Misc.Analyze('OnException', { Error: Error }, 'error')
+    Misc.Analyze('OnUncaughtException', { Error: Error })
 })
 
 MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
@@ -32,23 +33,51 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
     {
         if (Error)
         {
-            Misc.Analyze('OnDBConnect', { Error: Error }, 'error')
+            Misc.Analyze('OnDBError', { Error: Error })
             return
         }
 
-        Misc.Analyze('OnDBConnect', { })
+        Misc.Analyze('OnDBConnect')
 
         global.MongoID = MongoDB.ObjectID
         global.DB = DataBase.db(DBConfig.DataBase)
 
         const Server = Net.createServer()
 
-        Server.on('connection', function(Client2)
+        Server.on('connection', function(RealClient)
         {
-            Misc.Analyze('OnClientConnect', { IP: Client2.remoteAddress })
+            Misc.Analyze('OnClientConnect', { IP: RealClient.remoteAddress })
 
-            const Client = new Socket(Client2)
+            const Client = new Socket(RealClient)
 
+            Client.on(Packet.PACKET_SEND_MESSAGE, function(Data, MessageID)
+            {
+                
+            })
+        })
+
+        Server.on('close', function()
+        {
+            Misc.Analyze('OnServerClose')
+        })
+
+        Server.on('error', function(Error)
+        {
+            Misc.Analyze('OnServerError', { Error: Error })
+        })
+
+        Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
+        {
+            Misc.Analyze('OnServerListen')
+        })
+    })
+
+/*
+    Result List:
+    -1 : DataBase Warning
+*/
+
+/*
             Client.on('disconnect', function(Client)
             {
                 Misc.Analyze('OnClientDisconnect', { IP: Client2.remoteAddress })
@@ -185,6 +214,17 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                 })
             })
 
+            Client.on('SendData2', async function(Stream, Data, CallBack)
+            {
+                var WriteStream = FS.createWriteStream(Config.APP_STORAGE_TEMP + UniqueName())
+                Stream.pipe(WriteStream)
+
+                WriteStream.on('finish', function()
+                {
+                    console.log('FinishL ')
+                })
+            })
+
             Client.on('SendMessage', function(Data, CallBack)
             {
                 if (Misc.IsInvalidJSON(Data))
@@ -242,28 +282,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                     Misc.API('SendMessage', { })
                 })
             })
-        })
-
-        Server.on('error', function(Error)
-        {
-            Misc.Analyze('OnServer', { Error: Error }, 'error')
-        })
-
-        Server.on('close', function()
-        {
-            Misc.Analyze('OnServerClose', { }, 'error')
-        })
-
-        Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
-        {
-            Misc.Analyze('OnServerListen', { })
-        })
-    })
-
-/*
-    Result List:
-    -1 : DataBase Warning
-*/
+            */
 
 /*
             Client.on('SendData', function(ReadStream, Data, CallBack)

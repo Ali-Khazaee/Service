@@ -1,10 +1,8 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Readable = require('stream').Readable
 
 const Misc = require('./Misc')
-const Type = require('./TypeList').Socket
 
 class Socket extends EventEmitter
 {
@@ -12,86 +10,144 @@ class Socket extends EventEmitter
     {
         super()
 
-        this._Offset = 0
-        this._Queue = [ ]
-        this._Stream = { }
-        this._ReadByte = 0
-        this._Buffer = null
-        this._MessageID = 1
         this._Socket = Socket
-        this._Connected = true
         this._ID = Misc.RandomString(15)
 
-        this._Socket.on('data', (Chunk) =>
+        this._Socket.on('close', (HasError) =>
         {
-            const buffer = this.Read(Chunk)
-
-            for (let I = 0; I < buffer.length; I++)
-            {
-                const Data = this.Deserialize(buffer[I])
-
-                /*
-                switch (Data.Event)
-                {
-                case 'SignIn':
-                case 'Authentication':
-                    break
-                default:
-                    if (Misc.IsUndefined(this.__Owner))
-                        return
-                }
-                */
-
-                Misc.API('QQ', { Data: Data })
-
-                switch (Data.MessageType)
-                {
-                case Type.MESSAGE_TYPE_DATA:
-                    this.emit(Data.Event, Data.Data, () => null)
-                    break
-                case Type.MESSAGE_TYPE_DATA_WITH_ACK:
-                    this.emit(Data.Event, Data.Data, this.AckCallback(Data.MessageID))
-                    break
-                case Type.MESSAGE_TYPE_DATA_STREAM_OPEN_WITH_ACK:
-                    this.emit(Data.Event, this.OpenDataStream(Data), Data.Data, this.AckCallback(Data.MessageID))
-                    break
-                case Type.MESSAGE_TYPE_DATA_STREAM:
-                    this.TransmitDataStream(Data)
-                    break
-                case Type.MESSAGE_TYPE_DATA_STREAM_CLOSE:
-                    this.CloseDataStream(Data)
-                    break
-                }
-            }
+            Misc.Analyze('OnClientClose', { HasError: HasError })
         })
 
         this._Socket.on('connect', () =>
         {
-            this._Connected = true
-
-            if (this._Queue.length > 0)
-            {
-                for (var i = 0; i < this._Queue.length; i++)
-                    this._Socket.write(this._Queue[i])
-
-                this._Queue.length = 0
-            }
+            Misc.Analyze('OnClientConnect')
         })
 
-        this._Socket.on('close', () =>
+        var accumulatingBuffer = Buffer.alloc(0)
+        var totalPacketLen = -1
+        var accumulatingLen = 0
+        var recvedThisTimeLen = 0
+        var PACKET_HEADER_LEN = 6
+
+        this._Socket.on('data', (Chunk) =>
         {
-            this.emit('disconnect', this._Socket)
-            this._Connected = false
-            this._Socket = null
+            recvedThisTimeLen = Chunk.length
+
+            console.log('recvedThisTimeLen=' + recvedThisTimeLen)
+
+            var tmpBuffer = Buffer.alloc(accumulatingLen + recvedThisTimeLen)
+            accumulatingBuffer.copy(tmpBuffer)
+            Chunk.copy(tmpBuffer, accumulatingLen)
+            accumulatingBuffer = tmpBuffer
+            tmpBuffer = null
+            accumulatingLen += recvedThisTimeLen
+
+            console.log('accumulatingBuffer = ' + accumulatingBuffer)
+            console.log('accumulatingLen    =' + accumulatingLen)
+
+            if (accumulatingLen < PACKET_HEADER_LEN)
+            {
+                console.log('need to get more data(less than header-length received) -> wait..')
+                return
+            }
+            else if (accumulatingLen === PACKET_HEADER_LEN)
+            {
+                console.log('need to get more data(only header-info is available) -> wait..')
+                return
+            }
+            else
+            {
+                console.log('before-totalPacketLen=' + totalPacketLen)
+
+                if (totalPacketLen < 0)
+                {
+                    totalPacketLen = accumulatingBuffer.readUInt32BE(0)
+                    console.log('totalPacketLen=' + totalPacketLen)
+                }
+            }
+
+            while (accumulatingLen >= totalPacketLen + PACKET_HEADER_LEN)
+            {
+                console.log('누적된 데이터(' + accumulatingLen + ') >= 헤더+데이터 길이(' + (totalPacketLen + PACKET_HEADER_LEN) + ')')
+                console.log('accumulatingBuffer= ' + accumulatingBuffer)
+
+                var aPacketBufExceptHeader = Buffer.alloc(totalPacketLen)
+                console.log('aPacketBufExceptHeader len= ' + aPacketBufExceptHeader.length)
+                accumulatingBuffer.copy(aPacketBufExceptHeader, 0, PACKET_HEADER_LEN, accumulatingBuffer.length)
+
+                var stringData = aPacketBufExceptHeader.toString()
+                console.log('AAA: ' + stringData)
+
+                var newBufRebuild = Buffer.alloc(accumulatingBuffer.length - (totalPacketLen + PACKET_HEADER_LEN))
+                newBufRebuild.fill()
+                accumulatingBuffer.copy(newBufRebuild, 0, totalPacketLen + PACKET_HEADER_LEN, accumulatingBuffer.length)
+
+                accumulatingLen -= (totalPacketLen + PACKET_HEADER_LEN)
+                accumulatingBuffer = newBufRebuild
+                newBufRebuild = null
+                totalPacketLen = -1
+
+                console.log('Init: accumulatingBuffer= ' + accumulatingBuffer)
+                console.log('      accumulatingLen   = ' + accumulatingLen)
+
+                if (accumulatingLen <= PACKET_HEADER_LEN)
+                    return
+                else
+                {
+                    totalPacketLen = accumulatingBuffer.readUInt32BE(0)
+                    console.log('totalPacketLen=' + totalPacketLen)
+                }
+            }
+
+            return
+
+            const DataBuffer = this.ReadData(Chunk)
+
+            let Packet = DataBuffer.readUInt16LE(0)
+            let MessageID = DataBuffer.readUInt16LE(2)
+            let DataLength = DataBuffer.readUInt16LE(4)
+            let Data = DataBuffer.toString('utf8', 6, 6 + DataLength)
+
+            Misc.Analyze('OnClientData', { DataLength: DataLength + 6, Chunk: Chunk.length })
+
+            // Add Authentication
+            // Add RateLimit
+
+            this.emit(Packet, Data, MessageID)
+        })
+
+        this._Socket.on('drain', () =>
+        {
+            Misc.Analyze('OnClientDrain')
+        })
+
+        this._Socket.on('end', () =>
+        {
+            Misc.Analyze('OnClientEnd')
         })
 
         this._Socket.on('error', (Error) =>
         {
-            Misc.Analyze('OnClientError', { Error: Error }, 'warning')
+            Misc.Analyze('OnClientError', { Error: Error })
+        })
+
+        this._Socket.on('lookup', (Error, Address, Family, Host) =>
+        {
+            Misc.Analyze('OnClientLookUp', { Error: Error, Address: Address, Family: Family, Host: Host })
+        })
+
+        this._Socket.on('ready', () =>
+        {
+            Misc.Analyze('OnClientReady')
+        })
+
+        this._Socket.on('timeout', () =>
+        {
+            Misc.Analyze('OnClientTimeOut')
         })
     }
 
-    Read(Chunk)
+    ReadData(Chunk)
     {
         let Buffers = []
         let OffsetChunk = 0
@@ -99,8 +155,13 @@ class Socket extends EventEmitter
 
         while (OffsetChunk < Chunk.length)
         {
-            if (this._ReadByte < 4)
+            if (Buffers.length < 6)
             {
+                let Packet = DataBuffer.readUInt16LE(0)
+                let MessageID = DataBuffer.readUInt16LE(2)
+                let DataLength = DataBuffer.readUInt16LE(4)
+                let Data = DataBuffer.toString('utf8', 6, 6 + DataLength)
+
                 for (; OffsetChunk < Chunk.length && this._ReadByte < 4; OffsetChunk++, this._ReadByte++)
                     MessageLength |= Chunk[OffsetChunk] << (this._ReadByte * 8)
 
@@ -137,7 +198,9 @@ class Socket extends EventEmitter
 
         return Buffers
     }
+}
 
+/*
     OpenDataStream(Data)
     {
         const _this = this
@@ -339,5 +402,6 @@ class Socket extends EventEmitter
         return buffer
     }
 }
+*/
 
 module.exports = Socket
