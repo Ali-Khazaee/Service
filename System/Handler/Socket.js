@@ -13,6 +13,10 @@ class Socket extends EventEmitter
         this._Socket = Socket
         this._ID = Misc.RandomString(15)
 
+        this._TotalLength = -1
+        this._DownloadedLength = 0
+        this._DownloadedBuffer = Buffer.alloc(0)
+
         this._Socket.on('close', (HasError) =>
         {
             Misc.Analyze('OnClientClose', { HasError: HasError })
@@ -23,97 +27,55 @@ class Socket extends EventEmitter
             Misc.Analyze('OnClientConnect')
         })
 
-        var accumulatingBuffer = Buffer.alloc(0)
-        var totalPacketLen = -1
-        var accumulatingLen = 0
-        var recvedThisTimeLen = 0
-        var PACKET_HEADER_LEN = 6
-
         this._Socket.on('data', (Chunk) =>
         {
-            recvedThisTimeLen = Chunk.length
+            console.log('------------------------------')
+            console.log('Chunk length: ' + Chunk.length)
 
-            console.log('recvedThisTimeLen=' + recvedThisTimeLen)
+            let TempBuffer = Buffer.alloc(this._DownloadedLength + Chunk.length)
+            this._DownloadedBuffer.copy(TempBuffer)
 
-            var tmpBuffer = Buffer.alloc(accumulatingLen + recvedThisTimeLen)
-            accumulatingBuffer.copy(tmpBuffer)
-            Chunk.copy(tmpBuffer, accumulatingLen)
-            accumulatingBuffer = tmpBuffer
-            tmpBuffer = null
-            accumulatingLen += recvedThisTimeLen
+            Chunk.copy(TempBuffer, this._DownloadedLength)
 
-            console.log('accumulatingBuffer = ' + accumulatingBuffer)
-            console.log('accumulatingLen    =' + accumulatingLen)
+            this._DownloadedLength += Chunk.length
+            this._DownloadedBuffer = TempBuffer
 
-            if (accumulatingLen < PACKET_HEADER_LEN)
+            TempBuffer = null
+
+            console.log('DownloadedLength: ' + this._DownloadedLength)
+
+            if (this._DownloadedLength < 3 || this._DownloadedLength === 4)
             {
-                console.log('need to get more data(less than header-length received) -> wait..')
+                console.log('Need More Data')
                 return
             }
-            else if (accumulatingLen === PACKET_HEADER_LEN)
+            else if (this._TotalLength < 0)
             {
-                console.log('need to get more data(only header-info is available) -> wait..')
-                return
-            }
-            else
-            {
-                console.log('before-totalPacketLen=' + totalPacketLen)
-
-                if (totalPacketLen < 0)
-                {
-                    totalPacketLen = accumulatingBuffer.readUInt32BE(0)
-                    console.log('totalPacketLen=' + totalPacketLen)
-                }
+                this._TotalLength = this._DownloadedBuffer.readUInt16LE(2)
+                console.log('TotalLength: ' + this._TotalLength)
             }
 
-            while (accumulatingLen >= totalPacketLen + PACKET_HEADER_LEN)
+            while (this._DownloadedLength >= this._TotalLength)
             {
-                console.log('누적된 데이터(' + accumulatingLen + ') >= 헤더+데이터 길이(' + (totalPacketLen + PACKET_HEADER_LEN) + ')')
-                console.log('accumulatingBuffer= ' + accumulatingBuffer)
+                let RealBuffer = Buffer.alloc(this._TotalLength)
+                this._DownloadedBuffer.copy(RealBuffer)
 
-                var aPacketBufExceptHeader = Buffer.alloc(totalPacketLen)
-                console.log('aPacketBufExceptHeader len= ' + aPacketBufExceptHeader.length)
-                accumulatingBuffer.copy(aPacketBufExceptHeader, 0, PACKET_HEADER_LEN, accumulatingBuffer.length)
+                this.Deserializer(RealBuffer)
 
-                var stringData = aPacketBufExceptHeader.toString()
-                console.log('AAA: ' + stringData)
+                TempBuffer = Buffer.alloc(this._DownloadedBuffer.length - this._TotalLength)
 
-                var newBufRebuild = Buffer.alloc(accumulatingBuffer.length - (totalPacketLen + PACKET_HEADER_LEN))
-                newBufRebuild.fill()
-                accumulatingBuffer.copy(newBufRebuild, 0, totalPacketLen + PACKET_HEADER_LEN, accumulatingBuffer.length)
+                this._DownloadedBuffer.copy(TempBuffer, 0, this._TotalLength, this._DownloadedBuffer.length)
+                this._DownloadedLength -= this._TotalLength
+                this._DownloadedBuffer = TempBuffer
+                this._TotalLength = -1
 
-                accumulatingLen -= (totalPacketLen + PACKET_HEADER_LEN)
-                accumulatingBuffer = newBufRebuild
-                newBufRebuild = null
-                totalPacketLen = -1
+                TempBuffer = null
 
-                console.log('Init: accumulatingBuffer= ' + accumulatingBuffer)
-                console.log('      accumulatingLen   = ' + accumulatingLen)
-
-                if (accumulatingLen <= PACKET_HEADER_LEN)
+                if (this._DownloadedLength < 3 || this._DownloadedLength === 4)
                     return
-                else
-                {
-                    totalPacketLen = accumulatingBuffer.readUInt32BE(0)
-                    console.log('totalPacketLen=' + totalPacketLen)
-                }
+                else if (this._TotalLength < 0)
+                    this._TotalLength = this._DownloadedBuffer.readUInt16LE(2)
             }
-
-            return
-
-            const DataBuffer = this.ReadData(Chunk)
-
-            let Packet = DataBuffer.readUInt16LE(0)
-            let MessageID = DataBuffer.readUInt16LE(2)
-            let DataLength = DataBuffer.readUInt16LE(4)
-            let Data = DataBuffer.toString('utf8', 6, 6 + DataLength)
-
-            Misc.Analyze('OnClientData', { DataLength: DataLength + 6, Chunk: Chunk.length })
-
-            // Add Authentication
-            // Add RateLimit
-
-            this.emit(Packet, Data, MessageID)
         })
 
         this._Socket.on('drain', () =>
@@ -147,56 +109,9 @@ class Socket extends EventEmitter
         })
     }
 
-    ReadData(Chunk)
+    Deserializer(DataBuffer)
     {
-        let Buffers = []
-        let OffsetChunk = 0
-        let MessageLength = 0
-
-        while (OffsetChunk < Chunk.length)
-        {
-            if (Buffers.length < 6)
-            {
-                let Packet = DataBuffer.readUInt16LE(0)
-                let MessageID = DataBuffer.readUInt16LE(2)
-                let DataLength = DataBuffer.readUInt16LE(4)
-                let Data = DataBuffer.toString('utf8', 6, 6 + DataLength)
-
-                for (; OffsetChunk < Chunk.length && this._ReadByte < 4; OffsetChunk++, this._ReadByte++)
-                    MessageLength |= Chunk[OffsetChunk] << (this._ReadByte * 8)
-
-                if (this._ReadByte === 4)
-                {
-                    this._Buffer = Buffer.allocUnsafe(4 + MessageLength)
-                    this._Buffer.writeUInt32LE(MessageLength, this._Offset)
-                    this._Offset += 4
-                }
-                else
-                    break
-            }
-
-            let ByteToRead = this._Buffer.length - this._ReadByte
-            let End = ByteToRead > (Chunk.length - OffsetChunk) ? Chunk.length : OffsetChunk + ByteToRead
-
-            Chunk.copy(this._Buffer, this._Offset, OffsetChunk, End)
-
-            const ByteRead = End - OffsetChunk
-
-            this._ReadByte += ByteRead
-            this._Offset += ByteRead
-
-            OffsetChunk = End
-
-            if (this._ReadByte < this._Buffer.length && this._ReadByte !== this._Buffer.length)
-                break
-
-            Buffers.push(this._Buffer)
-            this._Offset = 0
-            this._ReadByte = 0
-            MessageLength = 0
-        }
-
-        return Buffers
+        console.log('A Request arrive')
     }
 }
 
