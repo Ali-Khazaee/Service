@@ -1,8 +1,11 @@
 'use strict'
 
 const EventEmitter = require('events')
+const UniqueName = require('uuid/v4')
+const FS = require('fs')
 
 const Misc = require('./Misc')
+const Config = require('../Config/Core')
 
 class Socket extends EventEmitter
 {
@@ -10,10 +13,15 @@ class Socket extends EventEmitter
     {
         super()
 
-        this._Socket = Socket
         this._ID = Misc.RandomString(15)
+        this._Socket = Socket
 
+        this._FileLength = -1
+        this._PathStream = ''
+        this._FileSize = null
         this._TotalLength = -1
+        this._IsStream = false
+        this._FileStream = null
         this._DownloadedLength = 0
         this._DownloadedBuffer = Buffer.alloc(0)
 
@@ -27,10 +35,81 @@ class Socket extends EventEmitter
             Misc.Analyze('OnClientConnect')
         })
 
+        setInterval(() =>
+        {
+            Misc.Analyze('BufferLength: ', { Length: this._DownloadedBuffer.length })
+        }, 10000)
+
         this._Socket.on('data', (Chunk) =>
         {
-            console.log('------------------------------')
-            console.log('Chunk length: ' + Chunk.length)
+            if (this._FileLength > 0)
+            {
+                let DataLength = this._TotalLength - this._FileLength
+                let StreamData = this._TotalLength - DataLength
+
+                if (this._IsStream)
+                {
+                    if (this._FileStream == null)
+                    {
+                        this._PathStream = Config.SERVER_STORAGE_TEMP + UniqueName()
+                        this._FileStream = FS.createWriteStream(this._PathStream)
+                    }
+
+                    this._FileStream.write(Chunk)
+                    this._FileSize += Chunk.length
+
+                    if (StreamData >= this._FileSize)
+                    {
+                        this._FileStream.end()
+
+                        this.Deserializer(this._DownloadedBuffer, this._PathStream)
+
+                        this._FileSize = null
+                        this._FileStream = null
+                        this._IsStream = false
+                    }
+
+                    return
+                }
+
+                if (this._DownloadedLength >= DataLength)
+                {
+                    let DataBuffer = Buffer.alloc(DataLength)
+                    this._DownloadedBuffer.copy(DataBuffer)
+
+                    this._IsStream = true
+
+                    if (this._DownloadedBuffer.length > DataLength)
+                    {
+                        let TempBuffer = Buffer.alloc(StreamData)
+                        this._DownloadedBuffer.copy(TempBuffer, 0, DataLength)
+
+                        this._PathStream = Config.SERVER_STORAGE_TEMP + UniqueName()
+                        this._FileStream = FS.createWriteStream(this._PathStream)
+                        this._FileStream.write(TempBuffer)
+                        this._FileSize = TempBuffer.length
+
+                        if (TempBuffer.length >= StreamData)
+                        {
+                            this._FileStream.end()
+
+                            this.Deserializer(DataBuffer, this._PathStream)
+
+                            this._FileSize = null
+                            this._IsStream = false
+                            this._FileStream = null
+                        }
+
+                        TempBuffer = null
+                    }
+
+                    this._DownloadedBuffer = DataBuffer
+
+                    DataBuffer = null
+
+                    return
+                }
+            }
 
             let TempBuffer = Buffer.alloc(this._DownloadedLength + Chunk.length)
             this._DownloadedBuffer.copy(TempBuffer)
@@ -42,25 +121,21 @@ class Socket extends EventEmitter
 
             TempBuffer = null
 
-            console.log('DownloadedLength: ' + this._DownloadedLength)
-
-            if (this._DownloadedLength < 3 || this._DownloadedLength === 4)
-            {
-                console.log('Need More Data')
+            if (this._DownloadedLength < 9 || this._DownloadedLength === 10)
                 return
-            }
-            else if (this._TotalLength < 0)
+
+            if (this._TotalLength < 0)
             {
-                this._TotalLength = this._DownloadedBuffer.readUInt16LE(2)
-                console.log('TotalLength: ' + this._TotalLength)
+                this._FileLength = this._DownloadedBuffer.readUInt32LE(6)
+                this._TotalLength = this._DownloadedBuffer.readUInt32LE(2)
             }
 
             while (this._DownloadedLength >= this._TotalLength)
             {
-                let RealBuffer = Buffer.alloc(this._TotalLength)
-                this._DownloadedBuffer.copy(RealBuffer)
+                let DataBuffer = Buffer.alloc(this._TotalLength)
+                this._DownloadedBuffer.copy(DataBuffer)
 
-                this.Deserializer(RealBuffer)
+                this.Deserializer(DataBuffer)
 
                 TempBuffer = Buffer.alloc(this._DownloadedBuffer.length - this._TotalLength)
 
@@ -68,13 +143,18 @@ class Socket extends EventEmitter
                 this._DownloadedLength -= this._TotalLength
                 this._DownloadedBuffer = TempBuffer
                 this._TotalLength = -1
+                this._FileLength = -1
 
                 TempBuffer = null
 
-                if (this._DownloadedLength < 3 || this._DownloadedLength === 4)
+                if (this._DownloadedLength < 9 || this._DownloadedLength === 10)
                     return
-                else if (this._TotalLength < 0)
-                    this._TotalLength = this._DownloadedBuffer.readUInt16LE(2)
+
+                if (this._TotalLength < 0)
+                {
+                    this._FileLength = this._DownloadedBuffer.readUInt32LE(6)
+                    this._TotalLength = this._DownloadedBuffer.readUInt32LE(2)
+                }
             }
         })
 
@@ -111,25 +191,16 @@ class Socket extends EventEmitter
 
     Deserializer(DataBuffer)
     {
-        console.log('A Request arrive')
+        let PacketID = DataBuffer.readUInt16LE(0)
+        let DataLength = DataBuffer.readUInt32LE(2)
+        let FileLength = DataBuffer.readUInt32LE(6)
+        let Data = DataBuffer.toString('utf8', 10, 10 + DataLength - FileLength)
+
+        console.log(PacketID + ' -- ' + Data)
     }
 }
 
 /*
-    OpenDataStream(Data)
-    {
-        const _this = this
-        const ReadStream = new Readable({
-            read: function()
-            {
-                if (_this._Socket.isPaused())
-                    _this._Socket.resume()
-            }
-        })
-
-        this._Stream[Data.MessageID] = ReadStream
-        return ReadStream
-    }
 
     TransmitDataStream(Data)
     {

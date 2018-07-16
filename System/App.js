@@ -52,7 +52,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
             Client.on(Packet.PACKET_SEND_MESSAGE, function(Data, MessageID)
             {
-                
+
             })
         })
 
