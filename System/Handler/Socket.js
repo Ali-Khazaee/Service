@@ -13,17 +13,18 @@ class Socket extends EventEmitter
     {
         super()
 
-        this._ID = Misc.RandomString(15)
         this._Socket = Socket
+        this._ID = Misc.RandomString(15)
 
-        this._FileLength = -1
-        this._PathStream = ''
         this._FileSize = null
-        this._TotalLength = -1
-        this._IsStream = false
+        this._FilePath = null
+        this._FileLength = -1
         this._FileStream = null
-        this._DownloadedLength = 0
-        this._DownloadedBuffer = Buffer.alloc(0)
+        this._FileStreamable = false
+
+        this._DataLength = 0
+        this._DataTotalLength = -1
+        this._DataBuffer = Buffer.alloc(0)
 
         this._Socket.on('close', (HasError) =>
         {
@@ -35,75 +36,74 @@ class Socket extends EventEmitter
             Misc.Analyze('OnClientConnect')
         })
 
-        setInterval(() =>
-        {
-            Misc.Analyze('BufferLength: ', { Length: this._DownloadedBuffer.length })
-        }, 10000)
-
         this._Socket.on('data', (Chunk) =>
         {
             if (this._FileLength > 0)
             {
-                let DataLength = this._TotalLength - this._FileLength
-                let StreamData = this._TotalLength - DataLength
+                let DataLength = this._DataTotalLength - this._FileLength
+                let StreamData = this._DataTotalLength - DataLength
 
-                if (this._IsStream)
+                console.log({ A: DataLength, B: StreamData, C: this._DataBuffer.length, D: this._FileSize })
+
+                if (this._FileStreamable)
                 {
                     if (this._FileStream == null)
                     {
-                        this._PathStream = Config.SERVER_STORAGE_TEMP + UniqueName()
-                        this._FileStream = FS.createWriteStream(this._PathStream)
+                        this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
+                        this._FileStream = FS.createWriteStream(this._FilePath)
                     }
 
                     this._FileStream.write(Chunk)
                     this._FileSize += Chunk.length
 
-                    if (StreamData >= this._FileSize)
+                    if (this._FileSize >= StreamData)
                     {
                         this._FileStream.end()
 
-                        this.Deserializer(this._DownloadedBuffer, this._PathStream)
+                        this.Deserializer(this._DataBuffer, this._FilePath)
 
+                        this._FilePath = null
                         this._FileSize = null
                         this._FileStream = null
-                        this._IsStream = false
+                        this._FileStreamable = false
                     }
 
                     return
                 }
 
-                if (this._DownloadedLength >= DataLength)
+                if (this._DataLength >= DataLength)
                 {
                     let DataBuffer = Buffer.alloc(DataLength)
-                    this._DownloadedBuffer.copy(DataBuffer)
+                    this._DataBuffer.copy(DataBuffer)
 
-                    this._IsStream = true
+                    this._FileStreamable = true
 
-                    if (this._DownloadedBuffer.length > DataLength)
+                    if (this._DataBuffer.length > DataLength)
                     {
-                        let TempBuffer = Buffer.alloc(StreamData)
-                        this._DownloadedBuffer.copy(TempBuffer, 0, DataLength)
+                        let TempBuffer = Buffer.alloc(this._DataBuffer.length - DataBuffer.length)
+                        this._DataBuffer.copy(TempBuffer, 0, DataLength)
 
-                        this._PathStream = Config.SERVER_STORAGE_TEMP + UniqueName()
-                        this._FileStream = FS.createWriteStream(this._PathStream)
+                        this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
+                        this._FileStream = FS.createWriteStream(this._FilePath)
                         this._FileStream.write(TempBuffer)
-                        this._FileSize = TempBuffer.length
+                        this._FileSize = this._DataBuffer.length - DataBuffer.length
 
-                        if (TempBuffer.length >= StreamData)
+                        if (this._FileSize >= StreamData)
                         {
                             this._FileStream.end()
 
-                            this.Deserializer(DataBuffer, this._PathStream)
+                            this.Deserializer(DataBuffer, this._FilePath)
 
+                            this._FilePath = null
                             this._FileSize = null
-                            this._IsStream = false
                             this._FileStream = null
+                            this._FileStreamable = false
                         }
 
                         TempBuffer = null
                     }
 
-                    this._DownloadedBuffer = DataBuffer
+                    this._DataBuffer = DataBuffer
 
                     DataBuffer = null
 
@@ -111,49 +111,49 @@ class Socket extends EventEmitter
                 }
             }
 
-            let TempBuffer = Buffer.alloc(this._DownloadedLength + Chunk.length)
-            this._DownloadedBuffer.copy(TempBuffer)
+            let TempBuffer = Buffer.alloc(this._DataLength + Chunk.length)
+            this._DataBuffer.copy(TempBuffer)
 
-            Chunk.copy(TempBuffer, this._DownloadedLength)
+            Chunk.copy(TempBuffer, this._DataLength)
 
-            this._DownloadedLength += Chunk.length
-            this._DownloadedBuffer = TempBuffer
+            this._DataLength += Chunk.length
+            this._DataBuffer = TempBuffer
 
             TempBuffer = null
 
-            if (this._DownloadedLength < 9 || this._DownloadedLength === 10)
+            if (this._DataLength < 9 || this._DataLength === 10)
                 return
 
-            if (this._TotalLength < 0)
+            if (this._DataTotalLength < 0)
             {
-                this._FileLength = this._DownloadedBuffer.readUInt32LE(6)
-                this._TotalLength = this._DownloadedBuffer.readUInt32LE(2)
+                this._FileLength = this._DataBuffer.readUInt32LE(6)
+                this._DataTotalLength = this._DataBuffer.readUInt32LE(2)
             }
 
-            while (this._DownloadedLength >= this._TotalLength)
+            while (this._DataLength >= this._DataTotalLength && this._FileLength < 1)
             {
-                let DataBuffer = Buffer.alloc(this._TotalLength)
-                this._DownloadedBuffer.copy(DataBuffer)
+                let DataBuffer = Buffer.alloc(this._DataTotalLength)
+                this._DataBuffer.copy(DataBuffer)
 
                 this.Deserializer(DataBuffer)
 
-                TempBuffer = Buffer.alloc(this._DownloadedBuffer.length - this._TotalLength)
+                TempBuffer = Buffer.alloc(this._DataBuffer.length - this._DataTotalLength)
 
-                this._DownloadedBuffer.copy(TempBuffer, 0, this._TotalLength, this._DownloadedBuffer.length)
-                this._DownloadedLength -= this._TotalLength
-                this._DownloadedBuffer = TempBuffer
-                this._TotalLength = -1
+                this._DataBuffer.copy(TempBuffer, 0, this._DataTotalLength, this._DataBuffer.length)
+                this._DataLength -= this._DataTotalLength
+                this._DataBuffer = TempBuffer
+                this._DataTotalLength = -1
                 this._FileLength = -1
 
                 TempBuffer = null
 
-                if (this._DownloadedLength < 9 || this._DownloadedLength === 10)
+                if (this._DataLength < 9 || this._DataLength === 10)
                     return
 
-                if (this._TotalLength < 0)
+                if (this._DataTotalLength < 0)
                 {
-                    this._FileLength = this._DownloadedBuffer.readUInt32LE(6)
-                    this._TotalLength = this._DownloadedBuffer.readUInt32LE(2)
+                    this._FileLength = this._DataBuffer.readUInt32LE(6)
+                    this._DataTotalLength = this._DataBuffer.readUInt32LE(2)
                 }
             }
         })
@@ -187,6 +187,11 @@ class Socket extends EventEmitter
         {
             Misc.Analyze('OnClientTimeOut')
         })
+
+        setInterval(() =>
+        {
+            Misc.Analyze('BufferLength: ', { Length: this._DataBuffer.length })
+        }, 10000)
     }
 
     Deserializer(DataBuffer)
@@ -196,7 +201,7 @@ class Socket extends EventEmitter
         let FileLength = DataBuffer.readUInt32LE(6)
         let Data = DataBuffer.toString('utf8', 10, 10 + DataLength - FileLength)
 
-        console.log(PacketID + ' -- ' + Data)
+        console.log('Deserializer: ' + PacketID + ' -- ' + Data)
     }
 }
 
