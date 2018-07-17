@@ -3,14 +3,18 @@
 const Util = require('util')
 const Winston = require('winston')
 
-Winston.configure({ transports: [ new Winston.transports.Console(), new Winston.transports.File({ filename: './Storage/Debug.log' }) ] })
+const Logger = Winston.createLogger(
+    {
+        format: Winston.format.combine(Winston.format.printf(info => (info.message).replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
+        transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
+    })
 
 function Analyze(Tag, Data)
 {
     Data = Data || { }
     Data.CreatedTime = Time()
 
-    Winston.log('error', Tag + ' - ' + Util.inspect(Data, false, null))
+    Logger.log('error', Tag + ' ' + Util.inspect(Data, false, null))
 }
 
 function IsUndefined(Value)

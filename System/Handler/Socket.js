@@ -18,13 +18,13 @@ class Socket extends EventEmitter
 
         this._FileSize = null
         this._FilePath = null
-        this._FileLength = -1
         this._FileStream = null
-        this._FileStreamable = false
+        this._FileStreamAble = false
 
-        this._DataLength = 0
-        this._DataTotalLength = -1
-        this._DataBuffer = Buffer.alloc(0)
+        this._LastQuestFileLength = -1
+        this._LastQuestTotalLength = -1
+
+        this._OldBuffer = Buffer.alloc(0)
 
         this._Socket.on('close', (HasError) =>
         {
@@ -36,124 +36,157 @@ class Socket extends EventEmitter
             Misc.Analyze('OnClientConnect')
         })
 
-        this._Socket.on('data', (Chunk) =>
+        this._Socket.on('data', (CurrentBuffer) =>
         {
-            if (this._FileLength > 0)
+            if (this._LastQuestFileLength > 0)
             {
-                let DataLength = this._DataTotalLength - this._FileLength
-                let StreamData = this._DataTotalLength - DataLength
+                let QuestLength = this._LastQuestTotalLength - this._LastQuestFileLength
 
-                console.log({ A: DataLength, B: StreamData, C: this._DataBuffer.length, D: this._FileSize })
-
-                if (this._FileStreamable)
+                if (this._FileStreamAble)
                 {
-                    if (this._FileStream == null)
-                    {
-                        this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
-                        this._FileStream = FS.createWriteStream(this._FilePath)
-                    }
+                    return
+                }
 
-                    this._FileStream.write(Chunk)
-                    this._FileSize += Chunk.length
+                if (this._OldBuffer.length >= this._LastQuestFileLength)
+                {
+                    let QuestBuffer = Buffer.alloc(QuestLength)
 
-                    if (this._FileSize >= StreamData)
-                    {
-                        this._FileStream.end()
+                    this._OldBuffer.copy(QuestBuffer)
+                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
+                    this._FileStream = FS.createWriteStream(this._FilePath)
 
-                        this.Deserializer(this._DataBuffer, this._FilePath)
+                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength)
 
-                        this._FilePath = null
-                        this._FileSize = null
-                        this._FileStream = null
-                        this._FileStreamable = false
-                    }
+                    this._OldBuffer.copy(FileBuffer, QuestLength)
+                    this._FileStream.write(FileBuffer)
+                    this._FileStream.end()
+                    this._FileStream = null
+
+                    FileBuffer = null
+
+                    this.Deserializer(QuestBuffer, this._FilePath)
+                    this._FilePath = null
+
+                    QuestBuffer = null
+
+                    let NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength + CurrentBuffer.length)
+
+                    this._OldBuffer.copy(NewBuffer, this._LastQuestTotalLength)
+
+                    CurrentBuffer.copy(NewBuffer, this._OldBuffer.length - this._LastQuestTotalLength)
+
+                    this._LastQuestTotalLength = -1
+                    this._LastQuestFileLength = -1
+                    this._OldBuffer = NewBuffer
+
+                    NewBuffer = null
 
                     return
                 }
 
-                if (this._DataLength >= DataLength)
+                if (this._OldBuffer.length + CurrentBuffer.length >= this._LastQuestFileLength)
                 {
-                    let DataBuffer = Buffer.alloc(DataLength)
-                    this._DataBuffer.copy(DataBuffer)
+                    let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
 
-                    this._FileStreamable = true
+                    this._OldBuffer.copy(NewBuffer)
 
-                    if (this._DataBuffer.length > DataLength)
-                    {
-                        let TempBuffer = Buffer.alloc(this._DataBuffer.length - DataBuffer.length)
-                        this._DataBuffer.copy(TempBuffer, 0, DataLength)
+                    CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
 
-                        this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
-                        this._FileStream = FS.createWriteStream(this._FilePath)
-                        this._FileStream.write(TempBuffer)
-                        this._FileSize = this._DataBuffer.length - DataBuffer.length
+                    this._OldBuffer = NewBuffer
 
-                        if (this._FileSize >= StreamData)
-                        {
-                            this._FileStream.end()
+                    NewBuffer = null
 
-                            this.Deserializer(DataBuffer, this._FilePath)
+                    let QuestBuffer = Buffer.alloc(QuestLength)
 
-                            this._FilePath = null
-                            this._FileSize = null
-                            this._FileStream = null
-                            this._FileStreamable = false
-                        }
+                    this._OldBuffer.copy(QuestBuffer)
+                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
+                    this._FileStream = FS.createWriteStream(this._FilePath)
 
-                        TempBuffer = null
-                    }
+                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength)
 
-                    this._DataBuffer = DataBuffer
+                    this._OldBuffer.copy(FileBuffer, QuestLength)
+                    this._FileStream.write(FileBuffer)
+                    this._FileStream.end()
+                    this._FileStream = null
 
-                    DataBuffer = null
+                    FileBuffer = null
+
+                    this.Deserializer(QuestBuffer, this._FilePath)
+                    this._FilePath = null
+
+                    QuestBuffer = null
+
+                    NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
+
+                    this._OldBuffer.copy(NewBuffer, this._LastQuestTotalLength)
+                    this._LastQuestTotalLength = -1
+                    this._LastQuestFileLength = -1
+                    this._OldBuffer = NewBuffer
+
+                    NewBuffer = null
 
                     return
                 }
+
+                let QuestBuffer = Buffer.alloc(QuestLength)
+
+                this._OldBuffer.copy(QuestBuffer)
+                this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
+                this._FileStream = FS.createWriteStream(this._FilePath)
+
+                let FileBuffer = Buffer.alloc(this._OldBuffer.length - QuestBuffer)
+
+                this._OldBuffer.copy(FileBuffer, QuestLength)
+                this._FileStream.write(FileBuffer)
+                this._FileStream.write(CurrentBuffer)
+                this._FileSize = FileBuffer.length + CurrentBuffer.length
+                this._OldBuffer = QuestBuffer
+                this._FileStreamAble = true
+
+                QuestBuffer = null
             }
 
-            let TempBuffer = Buffer.alloc(this._DataLength + Chunk.length)
-            this._DataBuffer.copy(TempBuffer)
+            let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
+            this._OldBuffer.copy(NewBuffer)
 
-            Chunk.copy(TempBuffer, this._DataLength)
+            CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
 
-            this._DataLength += Chunk.length
-            this._DataBuffer = TempBuffer
+            this._OldBuffer = NewBuffer
 
-            TempBuffer = null
+            NewBuffer = null
 
-            if (this._DataLength < 9 || this._DataLength === 10)
+            if (this._OldBuffer.length <= 10)
                 return
 
-            if (this._DataTotalLength < 0)
+            if (this._LastQuestTotalLength < 0)
             {
-                this._FileLength = this._DataBuffer.readUInt32LE(6)
-                this._DataTotalLength = this._DataBuffer.readUInt32LE(2)
+                this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
+                this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
             }
 
-            while (this._DataLength >= this._DataTotalLength && this._FileLength < 1)
+            while (this._OldBuffer.length >= this._LastQuestTotalLength && this._LastQuestFileLength < 1)
             {
-                let DataBuffer = Buffer.alloc(this._DataTotalLength)
-                this._DataBuffer.copy(DataBuffer)
+                let QuestBuffer = Buffer.alloc(this._LastQuestTotalLength)
 
-                this.Deserializer(DataBuffer)
+                this._OldBuffer.copy(QuestBuffer)
+                this.Deserializer(QuestBuffer)
 
-                TempBuffer = Buffer.alloc(this._DataBuffer.length - this._DataTotalLength)
+                NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
 
-                this._DataBuffer.copy(TempBuffer, 0, this._DataTotalLength, this._DataBuffer.length)
-                this._DataLength -= this._DataTotalLength
-                this._DataBuffer = TempBuffer
-                this._DataTotalLength = -1
-                this._FileLength = -1
+                this._OldBuffer.copy(NewBuffer, 0, this._LastQuestTotalLength)
+                this._LastQuestTotalLength = -1
+                this._LastQuestFileLength = -1
+                this._OldBuffer = NewBuffer
 
-                TempBuffer = null
+                NewBuffer = null
 
-                if (this._DataLength < 9 || this._DataLength === 10)
+                if (this._OldBuffer.length <= 10)
                     return
 
-                if (this._DataTotalLength < 0)
+                if (this._LastQuestTotalLength < 0)
                 {
-                    this._FileLength = this._DataBuffer.readUInt32LE(6)
-                    this._DataTotalLength = this._DataBuffer.readUInt32LE(2)
+                    this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
+                    this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
                 }
             }
         })
@@ -187,11 +220,6 @@ class Socket extends EventEmitter
         {
             Misc.Analyze('OnClientTimeOut')
         })
-
-        setInterval(() =>
-        {
-            Misc.Analyze('BufferLength: ', { Length: this._DataBuffer.length })
-        }, 10000)
     }
 
     Deserializer(DataBuffer)

@@ -24,6 +24,9 @@ client.connect(37001, '157.119.190.112', function()
     })
 })
 
+console.log(70 + 5 + 12 + 13 + 8 + 23 + 47 + 35)
+console.log(172890 - (70 + 5 + 12 + 13 + 8 + 23 + 47 + 35))
+
 function Send(PacketID, Data, File)
 {
     let FileLength = File ? File.length : 0
