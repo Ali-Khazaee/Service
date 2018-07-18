@@ -16,15 +16,92 @@ class Socket extends EventEmitter
         this._Socket = Socket
         this._ID = Misc.RandomString(15)
 
-        this._FileSize = null
+        this._FileSize = 0
         this._FilePath = null
         this._FileStream = null
-        this._FileStreamAble = false
+        this._FileBuffer = null
 
         this._LastQuestFileLength = -1
         this._LastQuestTotalLength = -1
 
         this._OldBuffer = Buffer.alloc(0)
+
+        this._Socket.on('data', (CurrentBuffer) =>
+        {
+            if (this._LastQuestFileLength > 0)
+            {
+                if (this._FilePath == null)
+                {
+                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName()
+                    this._FileStream = FS.createWriteStream(this._FilePath)
+                }
+
+                let QuestLength = this._LastQuestTotalLength - this._LastQuestFileLength
+
+                if (this._FileBuffer == null)
+                {
+                    this._FileBuffer = Buffer.alloc(QuestLength)
+                    this._OldBuffer.copy(this._FileBuffer)
+                    this._OldBuffer = this._OldBuffer.slice(QuestLength)
+                }
+
+                if (this._OldBuffer.length + this._FileSize + CurrentBuffer.length >= this._LastQuestFileLength)
+                {
+                    let NewBuffer = CurrentBuffer
+
+                    if (this._OldBuffer.length > 0)
+                    {
+                        NewBuffer = Buffer.alloc(this._OldBuffer.length + CurrentBuffer.length)
+
+                        this._OldBuffer.copy(NewBuffer)
+
+                        CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
+                    }
+
+                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength - this._FileSize)
+
+                    NewBuffer.copy(FileBuffer)
+
+                    this._FileStream.write(FileBuffer)
+                    this._FileStream.end()
+                    this._FileStream.close()
+                    this._FileStream = null
+                    this._FileSize += FileBuffer.length
+                    this.Deserializer(this._FileBuffer, this._FilePath)
+
+                    this.BufferHandler(NewBuffer.slice(FileBuffer.length))
+
+                    FileBuffer = null
+
+                    this._FileSize = 0
+                    this._FilePath = null
+                    this._FileBuffer = null
+                    this._LastQuestFileLength = -1
+                    this._LastQuestTotalLength = -1
+
+                    return
+                }
+
+                if (this._OldBuffer.length > 0)
+                {
+                    this._FileStream.write(this._OldBuffer)
+                    this._FileSize += this._OldBuffer.length
+                    this._OldBuffer = Buffer.alloc(0)
+                }
+
+                this._FileStream.write(CurrentBuffer)
+                this._FileSize += CurrentBuffer.length
+
+                return
+            }
+
+            this.BufferHandler(CurrentBuffer)
+        })
+
+        this._Socket.on('end', () =>
+        {
+            Misc.Analyze('OnClientEnd')
+        })
 
         this._Socket.on('close', (HasError) =>
         {
@@ -36,121 +113,49 @@ class Socket extends EventEmitter
             Misc.Analyze('OnClientConnect')
         })
 
-        this._Socket.on('data', (CurrentBuffer) =>
+        this._Socket.on('error', (Error) =>
         {
-            if (this._LastQuestFileLength > 0)
-            {
-                let QuestLength = this._LastQuestTotalLength - this._LastQuestFileLength
+            Misc.Analyze('OnClientError', { Error: Error })
+        })
 
-                if (this._FileStreamAble)
-                {
-                    return
-                }
+        this._Socket.on('timeout', () =>
+        {
+            Misc.Analyze('OnClientTimeOut')
+        })
+    }
 
-                if (this._OldBuffer.length >= this._LastQuestFileLength)
-                {
-                    let QuestBuffer = Buffer.alloc(QuestLength)
+    BufferHandler(CurrentBuffer)
+    {
+        let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
+        this._OldBuffer.copy(NewBuffer)
 
-                    this._OldBuffer.copy(QuestBuffer)
-                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
-                    this._FileStream = FS.createWriteStream(this._FilePath)
+        CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
 
-                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength)
+        this._OldBuffer = NewBuffer
 
-                    this._OldBuffer.copy(FileBuffer, QuestLength)
-                    this._FileStream.write(FileBuffer)
-                    this._FileStream.end()
-                    this._FileStream = null
+        NewBuffer = null
 
-                    FileBuffer = null
+        if (this._OldBuffer.length <= 10)
+            return
 
-                    this.Deserializer(QuestBuffer, this._FilePath)
-                    this._FilePath = null
+        if (this._LastQuestTotalLength < 0 && this._OldBuffer.length >= (this._OldBuffer.readUInt32LE(2) - this._OldBuffer.readUInt32LE(6)))
+        {
+            this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
+            this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
+        }
 
-                    QuestBuffer = null
+        while (this._OldBuffer.length >= this._LastQuestTotalLength && this._LastQuestFileLength < 1)
+        {
+            let QuestBuffer = Buffer.alloc(this._LastQuestTotalLength)
 
-                    let NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength + CurrentBuffer.length)
+            this._OldBuffer.copy(QuestBuffer)
+            this.Deserializer(QuestBuffer)
 
-                    this._OldBuffer.copy(NewBuffer, this._LastQuestTotalLength)
+            NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
 
-                    CurrentBuffer.copy(NewBuffer, this._OldBuffer.length - this._LastQuestTotalLength)
-
-                    this._LastQuestTotalLength = -1
-                    this._LastQuestFileLength = -1
-                    this._OldBuffer = NewBuffer
-
-                    NewBuffer = null
-
-                    return
-                }
-
-                if (this._OldBuffer.length + CurrentBuffer.length >= this._LastQuestFileLength)
-                {
-                    let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
-
-                    this._OldBuffer.copy(NewBuffer)
-
-                    CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
-
-                    this._OldBuffer = NewBuffer
-
-                    NewBuffer = null
-
-                    let QuestBuffer = Buffer.alloc(QuestLength)
-
-                    this._OldBuffer.copy(QuestBuffer)
-                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
-                    this._FileStream = FS.createWriteStream(this._FilePath)
-
-                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength)
-
-                    this._OldBuffer.copy(FileBuffer, QuestLength)
-                    this._FileStream.write(FileBuffer)
-                    this._FileStream.end()
-                    this._FileStream = null
-
-                    FileBuffer = null
-
-                    this.Deserializer(QuestBuffer, this._FilePath)
-                    this._FilePath = null
-
-                    QuestBuffer = null
-
-                    NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
-
-                    this._OldBuffer.copy(NewBuffer, this._LastQuestTotalLength)
-                    this._LastQuestTotalLength = -1
-                    this._LastQuestFileLength = -1
-                    this._OldBuffer = NewBuffer
-
-                    NewBuffer = null
-
-                    return
-                }
-
-                let QuestBuffer = Buffer.alloc(QuestLength)
-
-                this._OldBuffer.copy(QuestBuffer)
-                this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName() + '.jpg'
-                this._FileStream = FS.createWriteStream(this._FilePath)
-
-                let FileBuffer = Buffer.alloc(this._OldBuffer.length - QuestBuffer)
-
-                this._OldBuffer.copy(FileBuffer, QuestLength)
-                this._FileStream.write(FileBuffer)
-                this._FileStream.write(CurrentBuffer)
-                this._FileSize = FileBuffer.length + CurrentBuffer.length
-                this._OldBuffer = QuestBuffer
-                this._FileStreamAble = true
-
-                QuestBuffer = null
-            }
-
-            let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
-            this._OldBuffer.copy(NewBuffer)
-
-            CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
-
+            this._OldBuffer.copy(NewBuffer, 0, this._LastQuestTotalLength)
+            this._LastQuestTotalLength = -1
+            this._LastQuestFileLength = -1
             this._OldBuffer = NewBuffer
 
             NewBuffer = null
@@ -158,68 +163,12 @@ class Socket extends EventEmitter
             if (this._OldBuffer.length <= 10)
                 return
 
-            if (this._LastQuestTotalLength < 0)
+            if (this._LastQuestTotalLength < 0 && this._OldBuffer.length >= (this._OldBuffer.readUInt32LE(2) - this._OldBuffer.readUInt32LE(6)))
             {
                 this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
                 this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
             }
-
-            while (this._OldBuffer.length >= this._LastQuestTotalLength && this._LastQuestFileLength < 1)
-            {
-                let QuestBuffer = Buffer.alloc(this._LastQuestTotalLength)
-
-                this._OldBuffer.copy(QuestBuffer)
-                this.Deserializer(QuestBuffer)
-
-                NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
-
-                this._OldBuffer.copy(NewBuffer, 0, this._LastQuestTotalLength)
-                this._LastQuestTotalLength = -1
-                this._LastQuestFileLength = -1
-                this._OldBuffer = NewBuffer
-
-                NewBuffer = null
-
-                if (this._OldBuffer.length <= 10)
-                    return
-
-                if (this._LastQuestTotalLength < 0)
-                {
-                    this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
-                    this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
-                }
-            }
-        })
-
-        this._Socket.on('drain', () =>
-        {
-            Misc.Analyze('OnClientDrain')
-        })
-
-        this._Socket.on('end', () =>
-        {
-            Misc.Analyze('OnClientEnd')
-        })
-
-        this._Socket.on('error', (Error) =>
-        {
-            Misc.Analyze('OnClientError', { Error: Error })
-        })
-
-        this._Socket.on('lookup', (Error, Address, Family, Host) =>
-        {
-            Misc.Analyze('OnClientLookUp', { Error: Error, Address: Address, Family: Family, Host: Host })
-        })
-
-        this._Socket.on('ready', () =>
-        {
-            Misc.Analyze('OnClientReady')
-        })
-
-        this._Socket.on('timeout', () =>
-        {
-            Misc.Analyze('OnClientTimeOut')
-        })
+        }
     }
 
     Deserializer(DataBuffer)
@@ -229,198 +178,8 @@ class Socket extends EventEmitter
         let FileLength = DataBuffer.readUInt32LE(6)
         let Data = DataBuffer.toString('utf8', 10, 10 + DataLength - FileLength)
 
-        console.log('Deserializer: ' + PacketID + ' -- ' + Data)
+        Misc.Analyze('Deserializer: ' + PacketID + ' -- ' + Data)
     }
 }
-
-/*
-
-    TransmitDataStream(Data)
-    {
-        const ReadStream = this._Stream[Data.MessageID]
-
-        if (!ReadStream.push(Data.Data))
-            this._Socket.pause()
-    }
-
-    CloseDataStream(Data)
-    {
-        const ReadStream = this._Stream[Data.MessageID]
-
-        ReadStream.push(null)
-        delete this._Stream[Data.MessageID]
-    }
-
-    Send2(Event, Data)
-    {
-        this.Send(Event, Data, Type.MESSAGE_TYPE_DATA, { MessageID: 0 })
-    }
-
-    Send(Event, Data, MessageType, Option)
-    {
-        const Buff = this.Serialize(Event, Data, MessageType, Option.MessageID)
-
-        if (this._Connected)
-            return this._Socket.write(Buff)
-        else
-            this._Queue.push(Buff)
-    }
-
-    AckCallback(MessageID)
-    {
-        const _this = this
-
-        return function Callback(Data)
-        {
-            _this.Send('', Data, Type.MESSAGE_TYPE_ACK, { MessageID: MessageID })
-        }
-    }
-
-    Deserialize(buffer)
-    {
-        let Data
-        let Offset = 4
-        let DataType = buffer[Offset++]
-        let MessageType = buffer[Offset++]
-
-        let MessageID = buffer.readUInt32LE(Offset)
-        Offset += 4
-
-        let EventLength = buffer.readUInt16LE(Offset)
-        Offset += 2
-
-        let Event = buffer.toString(undefined, Offset, Offset + EventLength)
-        Offset += EventLength
-
-        let DataLength = buffer.readUInt32LE(Offset)
-        Offset += 4
-
-        switch (DataType)
-        {
-        case Type.DATA_TYPE_STRING:
-            Data = buffer.toString(undefined, Offset, Offset + DataLength)
-            break
-        case Type.DATA_TYPE_OBJECT:
-            Data = JSON.parse(buffer.slice(Offset, Offset + DataLength).toString())
-            break
-        case Type.DATA_TYPE_BINARY:
-            Data = buffer.slice(Offset, Offset + DataLength)
-            break
-        case Type.DATA_TYPE_INTEGER:
-            Data = buffer.readIntLE(Offset, DataLength)
-            break
-        case Type.DATA_TYPE_DECIMAL:
-            Data = buffer.readDoubleLE(Offset)
-            break
-        case Type.DATA_TYPE_BOOLEAN:
-            Data = buffer[Offset]
-        }
-
-        return { Event: Event, Data: Data, MessageID: MessageID, MessageType: MessageType }
-    }
-
-    Serialize(Event, Data, MessageType, MessageID)
-    {
-        let DataType
-
-        switch (typeof Data)
-        {
-        case 'string':
-            DataType = Type.DATA_TYPE_STRING
-            break
-        case 'number':
-            DataType = Data % 1 === 0 ? Type.DATA_TYPE_INTEGER : Type.DATA_TYPE_DECIMAL
-            break
-        case 'object':
-            if (Data === null)
-                DataType = Type.DATA_TYPE_EMPTY
-            else if (Data instanceof Buffer)
-                DataType = Type.DATA_TYPE_BINARY
-            else
-            {
-                Data = Buffer.from(JSON.stringify(Data))
-                DataType = Type.DATA_TYPE_OBJECT
-            }
-            break
-        case 'boolean':
-            Data = Data ? 1 : 0
-            DataType = Type.DATA_TYPE_BOOLEAN
-            break
-        default:
-            Data = null
-            DataType = Type.DATA_TYPE_EMPTY
-        }
-
-        let EventLength = Buffer.byteLength(Event)
-        let DataLength = 0
-
-        switch (DataType)
-        {
-        case Type.DATA_TYPE_STRING:
-            DataLength = Buffer.byteLength(Data)
-            break
-        case Type.DATA_TYPE_BINARY:
-        case Type.DATA_TYPE_OBJECT:
-            DataLength = Data.length
-            break
-        case Type.DATA_TYPE_INTEGER:
-            DataLength = 6
-            break
-        case Type.DATA_TYPE_DECIMAL:
-            DataLength = 8
-            break
-        case Type.DATA_TYPE_BOOLEAN:
-            DataLength = 1
-            break
-        }
-
-        const MessageLength = 4 + 1 + 1 + 4 + 2 + EventLength + 4 + DataLength
-        const buffer = Buffer.alloc(4 + MessageLength)
-        let Offset = 0
-
-        buffer.writeUInt32LE(MessageLength, Offset)
-        Offset += 4
-
-        buffer[Offset] = DataType
-        Offset++
-
-        buffer[Offset] = MessageType
-        Offset++
-
-        buffer.writeUInt32LE(MessageID, Offset)
-        Offset += 4
-
-        buffer.writeUInt16LE(EventLength, Offset)
-        Offset += 2
-
-        buffer.write(Event, Offset, EventLength)
-        Offset += EventLength
-
-        buffer.writeUInt32LE(DataLength, Offset)
-        Offset += 4
-
-        switch (DataType)
-        {
-        case Type.DATA_TYPE_STRING:
-            buffer.write(Data, Offset, DataLength)
-            break
-        case Type.DATA_TYPE_BINARY:
-        case Type.DATA_TYPE_OBJECT:
-            Data.copy(buffer, Offset, 0, DataLength)
-            break
-        case Type.DATA_TYPE_INTEGER:
-            buffer.writeIntLE(Data, Offset, DataLength)
-            break
-        case Type.DATA_TYPE_DECIMAL:
-            buffer.writeDoubleLE(Data, Offset)
-            break
-        case Type.DATA_TYPE_BOOLEAN:
-            buffer[Offset] = Data
-        }
-
-        return buffer
-    }
-}
-*/
 
 module.exports = Socket
