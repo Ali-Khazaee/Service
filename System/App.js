@@ -50,6 +50,19 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
             const Client = new Socket(RealClient)
 
+            /**
+             * @PacketID 1
+             *
+             * @Description DarKhast e Bar Resie Username
+             *
+             * @Param {string} Username
+             *
+             * Result: 1 >> Username == Undefined
+             * Result: 2 >> Username < 3
+             * Result: 3 >> Username > 32
+             * Result: 4 >> Username != Regex
+             * Result: 5 >> Username Exist
+             */
             Client.on(Packet.Username, function(Message)
             {
                 if (Misc.IsUndefined(Message.Username))
@@ -74,7 +87,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                         return Client.Send({ Result: -1 })
                     }
 
-                    if (Result !== null)
+                    if (Misc.IsDefined(Result[0]))
                         return Client.Send({ Result: 5 })
 
                     Client.Send({ Result: 0 })
