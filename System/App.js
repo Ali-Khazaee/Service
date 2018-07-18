@@ -20,7 +20,7 @@ const DBConfig = require('./Config/DataBase')
 
 process.on('uncaughtException', function(Error)
 {
-    Misc.Analyze('OnUncaughtException', { Error: Error })
+    Misc.Analyze('UncaughtException', { Error: Error })
 })
 
 MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
@@ -33,11 +33,11 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
     {
         if (Error)
         {
-            Misc.Analyze('OnDBError', { Error: Error })
+            Misc.Analyze('DBError', { Error: Error })
             return
         }
 
-        Misc.Analyze('OnDBConnect')
+        Misc.Analyze('DBConnected')
 
         global.MongoID = MongoDB.ObjectID
         global.DB = DataBase.db(DBConfig.DataBase)
@@ -46,29 +46,55 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
         Server.on('connection', function(RealClient)
         {
-            Misc.Analyze('OnClientConnect', { IP: RealClient.remoteAddress })
+            Misc.Analyze('ClientConnected', { IP: RealClient.remoteAddress })
 
             const Client = new Socket(RealClient)
 
-            Client.on(Packet.PACKET_SEND_MESSAGE, function(Data, MessageID)
+            Client.on(Packet.Username, function(Message)
             {
+                if (Misc.IsUndefined(Message.Username))
+                    return Client.Send({ Result: 1 })
 
+                if (Message.Username.length < 3)
+                    return Client.Send({ Result: 2 })
+
+                if (Message.Username.length > 32)
+                    return Client.Send({ Result: 3 })
+
+                Message.Username = Message.Username.toLowerCase()
+
+                if (Message.Username.search(Config.PATTERN_USERNAME) === -1)
+                    return Client.Send({ Result: 4 })
+
+                global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('DBError', { Error: Error })
+                        return Client.Send({ Result: -1 })
+                    }
+
+                    if (Result !== null)
+                        return Client.Send({ Result: 5 })
+
+                    Client.Send({ Result: 0 })
+                })
             })
         })
 
         Server.on('close', function()
         {
-            Misc.Analyze('OnServerClose')
+            Misc.Analyze('ServerClose')
         })
 
         Server.on('error', function(Error)
         {
-            Misc.Analyze('OnServerError', { Error: Error })
+            Misc.Analyze('ServerError', { Error: Error })
         })
 
         Server.listen(Config.SERVER_PORT, '0.0.0.0', function()
         {
-            Misc.Analyze('OnServerListen')
+            Misc.Analyze('ServerListen')
         })
     })
 

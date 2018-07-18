@@ -20,14 +20,14 @@ class Socket extends EventEmitter
         this._FilePath = null
         this._FileStream = null
         this._FileBuffer = null
-
         this._LastQuestFileLength = -1
         this._LastQuestTotalLength = -1
-
         this._OldBuffer = Buffer.alloc(0)
 
         this._Socket.on('data', (CurrentBuffer) =>
         {
+            Misc.Analyze('ClientData', { IP: this._Socket.remoteAddress, Length: CurrentBuffer.length })
+
             if (this._LastQuestFileLength > 0)
             {
                 if (this._FilePath == null)
@@ -67,8 +67,8 @@ class Socket extends EventEmitter
                     this._FileStream.close()
                     this._FileStream = null
                     this._FileSize += FileBuffer.length
-                    this.Deserializer(this._FileBuffer, this._FilePath)
 
+                    this.Deserializer(this._FileBuffer, this._FilePath)
                     this.BufferHandler(NewBuffer.slice(FileBuffer.length))
 
                     FileBuffer = null
@@ -78,7 +78,6 @@ class Socket extends EventEmitter
                     this._FileBuffer = null
                     this._LastQuestFileLength = -1
                     this._LastQuestTotalLength = -1
-
                     return
                 }
 
@@ -91,36 +90,20 @@ class Socket extends EventEmitter
 
                 this._FileStream.write(CurrentBuffer)
                 this._FileSize += CurrentBuffer.length
-
                 return
             }
 
             this.BufferHandler(CurrentBuffer)
         })
 
-        this._Socket.on('end', () =>
-        {
-            Misc.Analyze('OnClientEnd')
-        })
-
         this._Socket.on('close', (HasError) =>
         {
-            Misc.Analyze('OnClientClose', { HasError: HasError })
-        })
-
-        this._Socket.on('connect', () =>
-        {
-            Misc.Analyze('OnClientConnect')
+            Misc.Analyze('ClientClose', { IP: this._Socket.remoteAddress, HasError: HasError ? 1 : 0 })
         })
 
         this._Socket.on('error', (Error) =>
         {
-            Misc.Analyze('OnClientError', { Error: Error })
-        })
-
-        this._Socket.on('timeout', () =>
-        {
-            Misc.Analyze('OnClientTimeOut')
+            Misc.Analyze('ClientError', { IP: this._Socket.remoteAddress, Error: Error })
         })
     }
 
@@ -171,14 +154,14 @@ class Socket extends EventEmitter
         }
     }
 
-    Deserializer(DataBuffer)
+    Send()
     {
-        let PacketID = DataBuffer.readUInt16LE(0)
-        let DataLength = DataBuffer.readUInt32LE(2)
-        let FileLength = DataBuffer.readUInt32LE(6)
-        let Data = DataBuffer.toString('utf8', 10, 10 + DataLength - FileLength)
+        this._Socket.write()
+    }
 
-        Misc.Analyze('Deserializer: ' + PacketID + ' -- ' + Data)
+    Deserializer(DataBuffer, FilePath)
+    {
+        this._Socket.emit(DataBuffer.readUInt16LE(0), DataBuffer.toString('utf8', 10, 10 + DataBuffer.readUInt32LE(2) - DataBuffer.readUInt32LE(6)), FilePath)
     }
 }
 

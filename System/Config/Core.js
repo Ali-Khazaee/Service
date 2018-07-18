@@ -11,5 +11,8 @@ module.exports =
 
     // Authentication
     AUTH_PRIVATE_KEY: FS.readFileSync('./Storage/PrivateKey.pem'),
-    AUTH_PUBLIC_KEY: FS.readFileSync('./Storage/PublicKey.pem')
+    AUTH_PUBLIC_KEY: FS.readFileSync('./Storage/PublicKey.pem'),
+
+    // Misc
+    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/
 }
