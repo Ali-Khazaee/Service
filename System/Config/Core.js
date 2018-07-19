@@ -14,5 +14,6 @@ module.exports =
     AUTH_PUBLIC_KEY: FS.readFileSync('./Storage/PublicKey.pem'),
 
     // Misc
-    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/
+    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
+    PATTERN_IR_PHONE: /^\+989\d{9}$/
 }
