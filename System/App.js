@@ -6,19 +6,19 @@ process.env.NODE_ENV = 'production'
 // const FS = require('fs')
 const Net = require('net')
 const MongoDB = require('mongodb')
-const Request = require('request')
+// const Request = require('request')
 // const UniqueName = require('uuid/v4')
 
 const Misc = require('./Handler/Misc')
-// const Auth = require('./Handler/Auth')
+const Auth = require('./Handler/Auth')
 const Config = require('./Config/Core')
 const Socket = require('./Handler/Socket')
 const Packet = require('./Handler/Packet')
 const DBConfig = require('./Config/DataBase')
 // const UploadHandler = require('./Handler/UploadHandler')
-// const ClientManager = require('./Handler/ClientManager')
 const TypeList = require('./Handler/TypeList')
 const Language = require('./Handler/Language')
+const ClientManager = require('./Handler/ClientManager')
 
 process.on('uncaughtException', function(Error)
 {
@@ -62,7 +62,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
              * Result: 1 >> Username == Undefined
              * Result: 2 >> Username < 3
              * Result: 3 >> Username > 32
-             * Result: 4 >> Username != Regex
+             * Result: 4 >> Username != Regex ( Not allowed )
              * Result: 5 >> Username Exist
              */
             Client.on(Packet.Username, function(Message)
@@ -101,15 +101,24 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
             /**
              * @PacketID 2
              *
-             * @Description Sabte Nam Az Tarighe Phone
+             * @Description Sabte Nam Az Tarighe Phone Marhale Aval
              *
+             * @Param {string} Number
+             * @Param {string} Country
              * @Param {string} Username
              *
-             * Result: 1 >> Username == Undefined
-             * Result: 2 >> Username < 3
-             * Result: 3 >> Username > 32
-             * Result: 4 >> Username != Regex
-             * Result: 5 >> Username Exist
+             * Support Countries: 'IR'
+             *
+             * Result: 1 >> Country == Undefined
+             * Result: 2 >> Number == Undefined
+             * Result: 3 >> Username == Undefined
+             * Result: 4 >> Country Not Supported
+             * Result: 5 >> Number != Regex ( Not Allowed )
+             * Result: 6 >> Username < 3
+             * Result: 7 >> Username > 32
+             * Result: 8 >> Username != Regex ( Not Allowed )
+             * Result: 9 >> Username Already Used
+             * Result: 10 >> Number Already Used
              */
             Client.on(Packet.SignUpPhone, function(Message)
             {
@@ -118,6 +127,9 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
 
                 if (Misc.IsUndefined(Message.Number))
                     return Client.Send({ Result: 2 })
+
+                if (Misc.IsUndefined(Message.Username))
+                    return Client.Send({ Result: 3 })
 
                 let CountryPattern
                 let CountryIsInvalid = true
@@ -131,12 +143,23 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                 }
 
                 if (CountryIsInvalid)
-                    return Client.Send({ Result: 3 })
-
-                if (Message.Number.search(CountryPattern) === -1)
                     return Client.Send({ Result: 4 })
 
-                global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
+                if (Message.Number.search(CountryPattern) === -1)
+                    return Client.Send({ Result: 5 })
+
+                if (Message.Username.length < 3)
+                    return Client.Send({ Result: 6 })
+
+                if (Message.Username.length > 32)
+                    return Client.Send({ Result: 7 })
+
+                Message.Username = Message.Username.toLowerCase()
+
+                if (Message.Username.search(Config.PATTERN_USERNAME) === -1)
+                    return Client.Send({ Result: 8 })
+
+                global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
                 {
                     if (Error)
                     {
@@ -145,11 +168,83 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                     }
 
                     if (Misc.IsDefined(Result[0]))
-                        return Client.Send({ Result: 5 })
+                        return Client.Send({ Result: 9 })
 
-                    let Key = Misc.RandomNumber(5)
+                    global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
+                    {
+                        if (Error)
+                        {
+                            Misc.Analyze('DBError', { Error: Error })
+                            return Client.Send({ Result: -1 })
+                        }
 
-                    global.DB.collection('register').insertOne({ Type: TypeList.SignUp.Number, Number: Message.Number, Key: Key, Country: Message.Country.toUpperCase(), Time: Misc.Time() }, function(Error2)
+                        if (Misc.IsDefined(Result[0]))
+                            return Client.Send({ Result: 10 })
+
+                        let Code = Misc.RandomNumber(5)
+
+                        global.DB.collection('register').insertOne({ Type: TypeList.SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, CreatedTime: Misc.Time() }, function(Error2)
+                        {
+                            if (Error2)
+                            {
+                                Misc.Analyze('DBError', { Error: Error2 })
+                                return Client.Send({ Result: -1 })
+                            }
+
+                            // FixMe Add Request To SMS Panel
+
+                            Client.Send({ Result: 0 })
+
+                            Misc.Analyze('Request', { ID: Packet.SignUpPhone, IP: RealClient.remoteAddress })
+                        })
+                    })
+                })
+            })
+
+            /**
+             * @PacketID 3
+             *
+             * @Description Taeedie Sabte Nam Az Tarighe Phone Marhale Dovom
+             *
+             * @Param {string} Number
+             * @Param {string} Code
+             *
+             * Result: 1 >> Code == Undefined
+             * Result: 2 >> Number == Undefined
+             * Result: 3 >> Code Invalid
+             * Result: 4 >> Request Invalid
+             * Result: 5 >> Number Already Used
+             * Result: 6 >> Username Already Used
+             *
+             * Return:
+             *           ID: Account ID Bayad To Client Save She
+             *           Key: Account Key Bayad To Client Save She, Mojavez e Dastresi
+             */
+            Client.on(Packet.SignUpPhoneVerify, function(Message)
+            {
+                if (Misc.IsUndefined(Message.Code))
+                    return Client.Send({ Result: 1 })
+
+                if (Misc.IsUndefined(Message.Number))
+                    return Client.Send({ Result: 2 })
+
+                if (Message.Code.length !== 5)
+                    return Client.Send({ Result: 3 })
+
+                Message.Number = Message.Number.replace(Config.PATTERN_ALL_PHONE, '')
+
+                global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: TypeList.SignUp.Number }, { CreatedTime: { $gt: Misc.Time() - 900 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
+                {
+                    if (Error)
+                    {
+                        Misc.Analyze('DBError', { Error: Error })
+                        return Client.Send({ Result: -1 })
+                    }
+
+                    if (Misc.IsUndefined(Result[0]))
+                        return Client.Send({ Result: 4 })
+
+                    global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray(function(Error2, Result2)
                     {
                         if (Error2)
                         {
@@ -157,34 +252,39 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
                             return Client.Send({ Result: -1 })
                         }
 
-                        // @TODO Ino Bayad Piade Sazi Konam
+                        if (Misc.IsDefined(Result2[0]))
+                            return Client.Send({ Result: 5 })
 
-                        Request.post(
+                        global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray(function(Error3, Result3)
+                        {
+                            if (Error3)
                             {
-                                url: 'http://niksms.com/fa/PublicApi/GroupSms',
-                                form:
-                                {
-                                    message: Language(Message.Country.toUpperCase(), Language.RegisterNumber, Key),
-                                    numbers: Message.Number,
-                                    yourMessageIds: Misc.Time(),
-                                    senderNumber: '30006179',
-                                    username: '09385454764',
-                                    password: 'Salam123',
-                                    sendType: 1,
-                                    sendOn: null
-                                }
-                            }, function(Error3)
+                                Misc.Analyze('DBError', { Error: Error3 })
+                                return Client.Send({ Result: -1 })
+                            }
+
+                            if (Misc.IsDefined(Result3[0]))
+                                return Client.Send({ Result: 6 })
+
+                            global.DB.collection('account').insertOne({ Username: Message.Username, Number: Message.Number, CreatedTime: Misc.Time() }, async function(Error4, Result4)
                             {
-                                if (Error3)
+                                if (Error4)
                                 {
-                                    Misc.Analyze('RequestError', { Error: Error3 })
-                                    return Client.Send({ Result: -2 })
+                                    Misc.Analyze('DBError', { Error: Error4 })
+                                    return Client.Send({ Result: -1 })
                                 }
 
-                                Client.Send({ Result: 0 })
+                                const AuthResult = await Auth.Create(Result4.insertedId)
 
-                                Misc.Analyze('Request', { ID: Packet.SignUpPhone, IP: RealClient.remoteAddress })
+                                if (AuthResult.Result !== 0)
+                                    return Client.Send({ Result: -3 })
+
+                                ClientManager.Add(Client)
+
+                                Client.__Owner = Result4.insertedId
+                                Client.Send({ Result: 0, ID: Result4.insertedId, Key: AuthResult.Key })
                             })
+                        })
                     })
                 })
             })
@@ -210,6 +310,7 @@ MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PA
     Internal Result List:
     -1 : DataBase Warning
     -2 : Request Warning
+    -3 : Authentication Warning
 */
 
 /*

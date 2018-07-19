@@ -17,15 +17,16 @@ function Create(Owner)
 
         const Segment = Buffer.from(JSON.stringify({ Owner: Owner, CreateTime: Misc.Time() })).toString('base64')
         const Signer = Crypto.createSign('sha256')
+
         Signer.update(Misc.ReverseString(Segment))
 
         const Key = Segment + '.' + Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')
 
-        global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, CreateTime: Misc.Time() }, function(Error)
+        global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, CreatedTime: Misc.Time() }, function(Error)
         {
             if (Error)
             {
-                Misc.Analyze('OnDBQuery', { Tag: 'Auth-Create', Error: Error }, 'error')
+                Misc.Analyze('DBError', { Tag: 'Auth-Create', Error: Error })
                 resolve({ Result: 2 })
                 return
             }

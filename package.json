@@ -1,6 +1,6 @@
 {
     "name": "channel-server",
-    "version": "0.0.4",
+    "version": "0.0.7",
     "description": "Channel Server Powered By Ali Khazaee",
     "main": "./System/App.js",
     "author": "Ali.Khazaee",

@@ -6,6 +6,7 @@ const FS = require('fs')
 
 const Misc = require('./Misc')
 const Config = require('../Config/Core')
+const ClientManager = require('./Handler/ClientManager')
 
 class Socket extends EventEmitter
 {
@@ -98,6 +99,8 @@ class Socket extends EventEmitter
 
         this._Socket.on('close', (HasError) =>
         {
+            ClientManager.Remove(this._Socket)
+
             Misc.Analyze('ClientClose', { IP: this._Socket.remoteAddress, HasError: HasError ? 1 : 0 })
         })
 

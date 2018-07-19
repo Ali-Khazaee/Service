@@ -15,5 +15,6 @@ module.exports =
 
     // Misc
     PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
+    PATTERN_ALL_PHONE: /[^+0-9]/g,
     PATTERN_IR_PHONE: /^\+989\d{9}$/
 }
