@@ -5,8 +5,9 @@ const UniqueName = require('uuid/v4')
 const FS = require('fs')
 
 const Misc = require('./Misc')
+const Packet = require('./Packet')
 const Config = require('../Config/Core')
-const ClientManager = require('./Handler/ClientManager')
+const ClientManager = require('./Client')
 
 class Socket extends EventEmitter
 {
@@ -15,6 +16,7 @@ class Socket extends EventEmitter
         super()
 
         this._Socket = Socket
+        this._Address = Socket.remoteAddress
         this._ID = Misc.RandomString(15)
 
         this._FileSize = 0
@@ -27,7 +29,7 @@ class Socket extends EventEmitter
 
         this._Socket.on('data', (CurrentBuffer) =>
         {
-            Misc.Analyze('ClientData', { IP: this._Socket.remoteAddress, Length: CurrentBuffer.length })
+            Misc.Analyze('ClientData', { IP: this._Address, Length: CurrentBuffer.length })
 
             if (this._LastQuestFileLength > 0)
             {
@@ -135,7 +137,7 @@ class Socket extends EventEmitter
             let QuestBuffer = Buffer.alloc(this._LastQuestTotalLength)
 
             this._OldBuffer.copy(QuestBuffer)
-            this.Deserializer(QuestBuffer)
+            this.OnMessage(QuestBuffer)
 
             NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
 
@@ -157,14 +159,32 @@ class Socket extends EventEmitter
         }
     }
 
-    Send()
+    Send(Packet, Message)
     {
-        this._Socket.write()
+        Message = JSON.stringify(Message)
+
+        let MessageBuffer = Buffer.alloc(2 + 4 + Message.length)
+        MessageBuffer.writeInt16LE(Packet)
+        MessageBuffer.writeInt32LE(MessageBuffer.length, 2)
+        MessageBuffer.write(Message, 6)
+
+        this._Socket.write(MessageBuffer)
     }
 
-    Deserializer(DataBuffer, FilePath)
+    OnMessage(DataBuffer, FilePath)
     {
-        this._Socket.emit(DataBuffer.readUInt16LE(0), DataBuffer.toString('utf8', 10, 10 + DataBuffer.readUInt32LE(2) - DataBuffer.readUInt32LE(6)), FilePath)
+        let PacketID = DataBuffer.readUInt16LE(0)
+
+        switch (PacketID)
+        {
+        case Packet.GetMessage:
+        case Packet.SendMessage:
+        case Packet.OnDelivery:
+            if (Misc.IsUndefined(this.__Owner))
+                return
+        }
+
+        this.emit(PacketID, DataBuffer.toString('utf8', 10, 10 + DataBuffer.readUInt32LE(2) - DataBuffer.readUInt32LE(6)), FilePath)
     }
 }
 
