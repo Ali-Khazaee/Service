@@ -4,17 +4,17 @@ const Misc = require('./Misc')
 
 class Client
 {
-    Add(Client)
+    static Add(Client)
     {
         global.DB.collection('client').insertOne(Client)
     }
 
-    Remove(ClientID)
+    static Remove(ClientID)
     {
         global.DB.collection('client').remove({_ID: ClientID})
     }
 
-    IsConnected(Owner)
+    static IsConnected(Owner)
     {
         return new Promise((resolve, reject) =>
         {
@@ -31,7 +31,7 @@ class Client
         })
     }
 
-    Find(Owner)
+    static Find(Owner)
     {
         return new Promise((resolve, reject) =>
         {
