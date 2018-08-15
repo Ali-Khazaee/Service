@@ -2,7 +2,7 @@
     "extends": "standard",
     "rules":
     {
-        "indent": [ "error", 4 ],
+        "indent": [ "error", 4 , { "SwitchCase" : 1 } ],
         "brace-style": [ "error", "allman" ],
         "space-before-function-paren": [ "error", "never" ],
         "curly": [ "error", "multi-or-nest" ]

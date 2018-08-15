@@ -1,13 +1,11 @@
-'use strict'
-
 const EventEmitter = require('events')
-const UniqueName = require('uuid/v4')
-const FS = require('fs')
 
 const Misc = require('./Misc')
 const Packet = require('./Packet')
-const Config = require('../Config/Core')
 const ClientManager = require('./Client')
+
+// PacketID + RequestLength + RequestID
+const HEADER_SIZE = 2 + 4 + 4
 
 class Socket extends EventEmitter
 {
@@ -16,175 +14,149 @@ class Socket extends EventEmitter
         super()
 
         this._Socket = Socket
-        this._Address = Socket.remoteAddress
         this._ID = Misc.RandomString(15)
+        this._Address = Socket.remoteAddress
 
-        this._FileSize = 0
-        this._FilePath = null
-        this._FileStream = null
-        this._FileBuffer = null
-        this._LastQuestFileLength = -1
-        this._LastQuestTotalLength = -1
-        this._OldBuffer = Buffer.alloc(0)
+        this._LastRequestID = -1
+        this._LastRequestLength = -1
+        this._BufferStorage = Buffer.alloc(0)
 
         this._Socket.on('data', (CurrentBuffer) =>
         {
             Misc.Analyze('ClientData', { IP: this._Address, Length: CurrentBuffer.length })
 
-            if (this._LastQuestFileLength > 0)
-            {
-                if (this._FilePath == null)
-                {
-                    this._FilePath = Config.SERVER_STORAGE_TEMP + UniqueName()
-                    this._FileStream = FS.createWriteStream(this._FilePath)
-                }
+            let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._BufferStorage.length)
 
-                let QuestLength = this._LastQuestTotalLength - this._LastQuestFileLength
+            this._BufferStorage.copy(NewBuffer)
 
-                if (this._FileBuffer == null)
-                {
-                    this._FileBuffer = Buffer.alloc(QuestLength)
-                    this._OldBuffer.copy(this._FileBuffer)
-                    this._OldBuffer = this._OldBuffer.slice(QuestLength)
-                }
+            CurrentBuffer.copy(NewBuffer, this._BufferStorage.length)
 
-                if (this._OldBuffer.length + this._FileSize + CurrentBuffer.length >= this._LastQuestFileLength)
-                {
-                    let NewBuffer = CurrentBuffer
+            this._BufferStorage = NewBuffer
 
-                    if (this._OldBuffer.length > 0)
-                    {
-                        NewBuffer = Buffer.alloc(this._OldBuffer.length + CurrentBuffer.length)
+            NewBuffer = null
 
-                        this._OldBuffer.copy(NewBuffer)
-
-                        CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
-                    }
-
-                    let FileBuffer = Buffer.alloc(this._LastQuestFileLength - this._FileSize)
-
-                    NewBuffer.copy(FileBuffer)
-
-                    this._FileStream.write(FileBuffer)
-                    this._FileStream.end()
-                    this._FileStream.close()
-                    this._FileStream = null
-                    this._FileSize += FileBuffer.length
-
-                    this.Deserializer(this._FileBuffer, this._FilePath)
-                    this.BufferHandler(NewBuffer.slice(FileBuffer.length))
-
-                    FileBuffer = null
-
-                    this._FileSize = 0
-                    this._FilePath = null
-                    this._FileBuffer = null
-                    this._LastQuestFileLength = -1
-                    this._LastQuestTotalLength = -1
-                    return
-                }
-
-                if (this._OldBuffer.length > 0)
-                {
-                    this._FileStream.write(this._OldBuffer)
-                    this._FileSize += this._OldBuffer.length
-                    this._OldBuffer = Buffer.alloc(0)
-                }
-
-                this._FileStream.write(CurrentBuffer)
-                this._FileSize += CurrentBuffer.length
+            if (this._BufferStorage.length <= HEADER_SIZE)
                 return
+
+            if (this._LastRequestLength === -1)
+            {
+                this._LastRequestID = this._BufferStorage.readUInt32LE(6)
+                this._LastRequestLength = this._BufferStorage.readUInt32LE(2)
             }
 
-            this.BufferHandler(CurrentBuffer)
+            while (this._BufferStorage.length >= this._LastRequestLength)
+            {
+                let RequestBuffer = Buffer.alloc(this._LastRequestLength)
+
+                this._BufferStorage.copy(RequestBuffer)
+                this.OnMessage(RequestBuffer)
+
+                NewBuffer = Buffer.alloc(this._BufferStorage.length - this._LastRequestLength)
+
+                this._BufferStorage.copy(NewBuffer, 0, this._LastRequestLength)
+                this._BufferStorage = NewBuffer
+                this._LastRequestLength = -1
+                this._LastRequestID = -1
+
+                NewBuffer = null
+
+                if (this._BufferStorage.length <= HEADER_SIZE)
+                    return
+
+                if (this._LastRequestLength === -1)
+                {
+                    this._LastRequestID = this._BufferStorage.readUInt32LE(6)
+                    this._LastRequestLength = this._BufferStorage.readUInt32LE(2)
+                }
+            }
         })
 
         this._Socket.on('close', (HasError) =>
         {
-            ClientManager.Remove(this._Socket)
+            ClientManager.Remove(this)
 
-            Misc.Analyze('ClientClose', { IP: this._Socket.remoteAddress, HasError: HasError ? 1 : 0 })
+            Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
 
         this._Socket.on('error', (Error) =>
         {
-            Misc.Analyze('ClientError', { IP: this._Socket.remoteAddress, Error: Error })
+            Misc.Analyze('ClientError', { IP: this._Address, Error: Error })
         })
     }
 
-    BufferHandler(CurrentBuffer)
-    {
-        let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._OldBuffer.length)
-        this._OldBuffer.copy(NewBuffer)
-
-        CurrentBuffer.copy(NewBuffer, this._OldBuffer.length)
-
-        this._OldBuffer = NewBuffer
-
-        NewBuffer = null
-
-        if (this._OldBuffer.length <= 10)
-            return
-
-        if (this._LastQuestTotalLength < 0 && this._OldBuffer.length >= (this._OldBuffer.readUInt32LE(2) - this._OldBuffer.readUInt32LE(6)))
-        {
-            this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
-            this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
-        }
-
-        while (this._OldBuffer.length >= this._LastQuestTotalLength && this._LastQuestFileLength < 1)
-        {
-            let QuestBuffer = Buffer.alloc(this._LastQuestTotalLength)
-
-            this._OldBuffer.copy(QuestBuffer)
-            this.OnMessage(QuestBuffer)
-
-            NewBuffer = Buffer.alloc(this._OldBuffer.length - this._LastQuestTotalLength)
-
-            this._OldBuffer.copy(NewBuffer, 0, this._LastQuestTotalLength)
-            this._LastQuestTotalLength = -1
-            this._LastQuestFileLength = -1
-            this._OldBuffer = NewBuffer
-
-            NewBuffer = null
-
-            if (this._OldBuffer.length <= 10)
-                return
-
-            if (this._LastQuestTotalLength < 0 && this._OldBuffer.length >= (this._OldBuffer.readUInt32LE(2) - this._OldBuffer.readUInt32LE(6)))
-            {
-                this._LastQuestFileLength = this._OldBuffer.readUInt32LE(6)
-                this._LastQuestTotalLength = this._OldBuffer.readUInt32LE(2)
-            }
-        }
-    }
-
-    Send(Packet, Message)
+    Send(Packet, ID, Message)
     {
         Message = JSON.stringify(Message)
 
-        let MessageBuffer = Buffer.alloc(2 + 4 + Message.length)
-        MessageBuffer.writeInt16LE(Packet)
-        MessageBuffer.writeInt32LE(MessageBuffer.length, 2)
-        MessageBuffer.write(Message, 6)
+        let BufferMessage = Buffer.alloc(HEADER_SIZE + Message.length)
+        BufferMessage.writeInt16LE(Packet)
+        BufferMessage.writeInt32LE(BufferMessage.length, 2)
+        BufferMessage.writeInt32LE(ID, 6)
+        BufferMessage.write(Message, 10)
 
-        this._Socket.write(MessageBuffer)
+        this._Socket.write(BufferMessage)
     }
 
-    OnMessage(DataBuffer, FilePath)
+    OnMessage(DataBuffer)
     {
         let PacketID = DataBuffer.readUInt16LE(0)
 
+        if (this.Auth(PacketID))
+            return
+
+        this.RateLimit(PacketID).then(() =>
+        {
+            this.emit(PacketID, DataBuffer.readUInt32LE(6), DataBuffer.toString('utf8', HEADER_SIZE))
+        },
+        (Error) =>
+        {
+            Misc.Analyze('RateLimit', { IP: this._Address, Error: Error })
+        })
+    }
+
+    RateLimit(PacketID)
+    {
+        return new Promise((resolve, reject) =>
+        {
+            global.DB.collection('ratelimit').find({ $and: [ { Packet: PacketID }, { Address: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray(function(Error, Result)
+            {
+                if (Error)
+                {
+                    Misc.Analyze('DBError', { Error: Error })
+                    return Client.Send(Packet.Authentication, { Result: -1 })
+                }
+
+                if (Misc.IsUndefined(Result[0]))
+                    return Client.Send(Packet.Authentication, { Result: 2 })
+
+                Client.__Owner = Result[0].Owner
+
+                ClientManager.Add(Client)
+
+                Client.Send(Packet.Authentication, { Result: 0 })
+
+                Misc.Analyze('Request', { ID: Packet.Authentication, IP: Client._Address })
+            })
+
+            if (true)
+                resolve('stuff worked')
+            else
+                reject(Error('It broke'))
+        })
+    }
+
+    Auth(PacketID)
+    {
         switch (PacketID)
         {
-        case Packet.GetMessage:
-        case Packet.SendMessage:
-        case Packet.OnDelivery:
-            if (Misc.IsUndefined(this.__Owner))
-                return
+            case Packet.GetMessage:
+            case Packet.SendMessage:
+            case Packet.OnDelivery:
+                if (Misc.IsUndefined(this.__Owner))
+                    return true
         }
 
-        this.emit(PacketID, DataBuffer.toString('utf8', 10, 10 + DataBuffer.readUInt32LE(2) - DataBuffer.readUInt32LE(6)), FilePath)
+        return false
     }
 }
 
