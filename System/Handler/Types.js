@@ -2,14 +2,12 @@
 
 module.exports =
 {
-    // Sign Up
     SignUp:
     {
         Number: 0,
         Email: 1
     },
 
-    // Message
     Message:
     {
         TEXT: 0,

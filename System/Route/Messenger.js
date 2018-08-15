@@ -1,7 +1,6 @@
 const Misc = require('../Handler/Misc')
 const Packet = require('../Handler/Packet')
-const ClientManager = require('../Handler/Client')
-const MessageType = require('../Handler/TypeList').Message
+const MessageType = require('../Handler/Types').Message
 
 module.exports = function(Client)
 {
@@ -44,13 +43,15 @@ module.exports = function(Client)
                         return
 
                     let Time = Misc.TimeMili()
-                    const From = ClientManager.Find(Result2[0].From)
 
-                    if (Misc.IsDefined(From))
+                    Client.Find(Result2[0].From).then(From =>
                     {
-                        From.Send(Packet.OnDelivery, { ID: Result2[0]._id, Delivery: Time })
-                        global.DB.collection('message').updateOne({ _id: Result[I]._id }, { $set: { Delivery: Time } })
-                    }
+                        if (Misc.IsDefined(From))
+                        {
+                            From.Send(Packet.OnDelivery, { ID: Result2[0]._id, Delivery: Time })
+                            global.DB.collection('message').updateOne({ _id: Result[I]._id }, { $set: { Delivery: Time } })
+                        }
+                    })
                 })
             }
 
@@ -103,22 +104,23 @@ module.exports = function(Client)
             if (Misc.IsDefined(Message.ReplyID))
                 DataMessage.Reply = Message.ReplyID
 
-            const To = ClientManager.Find(Message.To)
-
-            if (Misc.IsDefined(To))
+            Client.Find(Message.To).then(async To =>
             {
-                To.Send(Packet.SendMessage, DataMessage)
-                DataMessage.Delivery = Time
-            }
+                if (Misc.IsDefined(To))
+                {
+                    To.Send(Packet.SendMessage, DataMessage)
+                    DataMessage.Delivery = Time
+                }
 
-            await global.DB.collection('message').insertOne(DataMessage)
+                await global.DB.collection('message').insertOne(DataMessage)
 
-            if (Misc.IsDefined(To))
-                global.DB.collection('message').updateOne({ _id: DataMessage.insertedId }, { $set: { Delivery: Time } })
+                if (Misc.IsDefined(To))
+                    global.DB.collection('message').updateOne({ _id: DataMessage.insertedId }, { $set: { Delivery: Time } })
 
-            Client.Send(Packet.SendMessage, { Result: 0, ID: DataMessage.insertedId, Time: Time, Delivery: DataMessage.Delivery })
+                Client.Send(Packet.SendMessage, { Result: 0, ID: DataMessage.insertedId, Time: Time, Delivery: DataMessage.Delivery })
 
-            Misc.Analyze('Request', { ID: Packet.SendMessage, IP: Client._Address })
+                Misc.Analyze('Request', { ID: Packet.SendMessage, IP: Client._Address })
+            })
         })
     })
 }

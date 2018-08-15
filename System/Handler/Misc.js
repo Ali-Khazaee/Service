@@ -38,21 +38,21 @@ function IsUndefined(Value)
     {
         switch (Value.toString())
         {
-        case '[object File]':
-        case '[object Map]':
-        case '[object Set]':
-            return Value.size === 0
+            case '[object File]':
+            case '[object Map]':
+            case '[object Set]':
+                return Value.size === 0
 
-        case '[object Object]':
-        {
-            for (let Key in Value)
+            case '[object Object]':
             {
-                if (Object.prototype.hasOwnProperty.call(Value, Key))
-                    return false
-            }
+                for (let Key in Value)
+                {
+                    if (Object.prototype.hasOwnProperty.call(Value, Key))
+                        return false
+                }
 
-            return true
-        }
+                return true
+            }
         }
     }
 

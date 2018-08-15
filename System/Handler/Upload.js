@@ -16,8 +16,8 @@ function ServerToken(ID)
 {
     switch (ID)
     {
-    case 0: return UploadConfig.UPLOAD_SERVER_1_TOKEN
-    case 1: return UploadConfig.UPLOAD_SERVER_2_TOKEN
+        case 0: return UploadConfig.UPLOAD_SERVER_1_TOKEN
+        case 1: return UploadConfig.UPLOAD_SERVER_2_TOKEN
     }
 
     Misc.Analyze('OnServerTokenWarning', { ID: ID })

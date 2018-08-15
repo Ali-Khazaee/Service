@@ -14,13 +14,13 @@ const Scope =
     EN:
     [
         // RegisterNumber: 0
-        (Args) => `:کد تاییدیه شما در برنام کانال \n\n ${Args} \n\n + ChannelApp.IR`,
+        (Args) => `${Args} is your Channel registration code \n\n + ChannelApp.IR`,
 
         // RegisterEmailSubject 1
-        (Args) => `:کد تاییدیه شما در برنام کانال \n\n ${Args} \n\n + ChannelApp.IR`,
+        (Args) => `${Args} is your Channel registration code \n\n + ChannelApp.IR`,
 
         // RegisterEmailContent
-        (Args) => `:کد تاییدیه شما در برنام کانال \n\n ${Args} \n\n + ChannelApp.IR`
+        (Args) => `${Args} is your Channel registration code \n\n + ChannelApp.IR`
     ]
 }
 

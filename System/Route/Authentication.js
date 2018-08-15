@@ -2,8 +2,7 @@ const Misc = require('../Handler/Misc')
 const Config = require('../Config/Core')
 const Packet = require('../Handler/Packet')
 const Auth = require('../Handler/Auth')
-const TypeList = require('../Handler/TypeList')
-const ClientManager = require('../Handler/Client')
+const Types = require('../Handler/Types')
 
 module.exports = function(Client)
 {
@@ -77,10 +76,10 @@ module.exports = function(Client)
 
         switch (Message.Country.toUpperCase())
         {
-        case 'IR':
-            CountryPattern = Config.PATTERN_IR_PHONE
-            CountryIsInvalid = false
-            break
+            case 'IR':
+                CountryPattern = Config.PATTERN_IR_PHONE
+                CountryIsInvalid = false
+                break
         }
 
         if (CountryIsInvalid || !CountryPattern.test(Message.Number))
@@ -110,7 +109,7 @@ module.exports = function(Client)
 
                 let Code = 55555 // FixMe Misc.RandomNumber(5)
 
-                global.DB.collection('register').insertOne({ Type: TypeList.SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, function(Error3)
+                global.DB.collection('register').insertOne({ Type: Types.SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, function(Error3)
                 {
                     if (Error3)
                     {
@@ -153,7 +152,7 @@ module.exports = function(Client)
         if (Misc.IsUndefined(Message.Number))
             return Client.Send({ Result: 2 })
 
-        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: TypeList.SignUp.Number }, { Time: { $gt: Misc.Time() - 900 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray(function(Error, Result)
+        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: Types.SignUp.Number }, { Time: { $gt: Misc.Time() - 900 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray(function(Error, Result)
         {
             if (Error)
             {
@@ -209,7 +208,7 @@ module.exports = function(Client)
 
                             Client.__Owner = Result4.insertedId
 
-                            ClientManager.Add(Client)
+                            Client.Add()
 
                             Client.Send({ Result: 0, ID: Result4.insertedId, Key: AuthResult.Key })
                         })
@@ -247,7 +246,7 @@ module.exports = function(Client)
 
             Client.__Owner = Result[0].Owner
 
-            ClientManager.Add(Client)
+            Client.Add()
 
             Client.Send(Packet.Authentication, { Result: 0 })
 
@@ -314,7 +313,7 @@ module.exports = function(Client)
 
                 let Code = Misc.RandomNumber(5)
 
-                global.DB.collection('register').insertOne({ Type: TypeList.SignUp.Email, Email: Message.Email, Username: Message.Username, Code: Code, CreatedTime: Misc.Time() }, function(Error3)
+                global.DB.collection('register').insertOne({ Type: Types.SignUp.Email, Email: Message.Email, Username: Message.Username, Code: Code, CreatedTime: Misc.Time() }, function(Error3)
                 {
                     if (Error3)
                     {
@@ -394,7 +393,7 @@ module.exports = function(Client)
 
                 let Code = Misc.RandomNumber(5)
 
-                global.DB.collection('register').insertOne({ Type: TypeList.SignUp.Email, Email: Message.Email, Username: Message.Username, Code: Code, CreatedTime: Misc.Time() }, function(Error3)
+                global.DB.collection('register').insertOne({ Type: Types.SignUp.Email, Email: Message.Email, Username: Message.Username, Code: Code, CreatedTime: Misc.Time() }, function(Error3)
                 {
                     if (Error3)
                     {
