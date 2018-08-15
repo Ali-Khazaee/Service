@@ -16,7 +16,7 @@ process.on('uncaughtException', function(Error)
     Misc.Analyze('UncaughtException', { Error: Error })
 })
 
-MongoDB.MongoClient.connect('mongodb://' + DBConfig.USERNAME + ':' + DBConfig.PASSWORD + '@' + DBConfig.HOST + ':' + DBConfig.PORT + '/' + DBConfig.DATABASE,
+MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD$}@${DBConfig.HOST}:${DBConfig.PORT}/${DBConfig.DATABASE}`,
     {
         reconnectTries: Number.MAX_VALUE,
         reconnectInterval: 2000,

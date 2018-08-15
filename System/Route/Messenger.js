@@ -1,6 +1,7 @@
 const Misc = require('../Handler/Misc')
-const Packet = require('../Handler/Packet')
-const MessageType = require('../Handler/Types').Message
+const Packet = require('../Model/Packet')
+const MessageType = require('../Model/DataType').Message
+const ClientManager = require('../Handler/Client')
 
 module.exports = function(Client)
 {
@@ -44,7 +45,7 @@ module.exports = function(Client)
 
                     let Time = Misc.TimeMili()
 
-                    Client.Find(Result2[0].From).then(From =>
+                    ClientManager.Find(Result2[0].From).then(From =>
                     {
                         if (Misc.IsDefined(From))
                         {
@@ -104,7 +105,7 @@ module.exports = function(Client)
             if (Misc.IsDefined(Message.ReplyID))
                 DataMessage.Reply = Message.ReplyID
 
-            Client.Find(Message.To).then(async To =>
+            ClientManager.Find(Message.To).then(async To =>
             {
                 if (Misc.IsDefined(To))
                 {

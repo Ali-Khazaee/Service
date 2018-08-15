@@ -14,7 +14,7 @@ function Analyze(Tag, Data)
     Data = Data || { }
     Data.CreatedTime = Time()
 
-    Logger.log('error', Tag + ' ' + Util.inspect(Data, false, null))
+    Logger.log('error', `${Tag} ${Util.inspect(Data, false, null)}`)
 }
 
 function IsUndefined(Value)

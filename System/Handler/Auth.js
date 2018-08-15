@@ -20,7 +20,7 @@ function Create(Owner)
 
         Signer.update(Misc.ReverseString(Segment))
 
-        const Key = Segment + '.' + Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')
+        const Key = `${Segment}.${Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')}`
 
         global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, CreatedTime: Misc.Time() }, function(Error)
         {

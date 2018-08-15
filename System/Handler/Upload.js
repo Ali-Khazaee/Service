@@ -44,7 +44,7 @@ function BestServerID()
 
         for (let Server of ServerList)
         {
-            Request.post({ url: Server.URL + '/space', form: { Password: ServerToken(Server.ID) } }, function(Error, Response, Body)
+            Request.post({ url: `${Server.URL}/space`, form: { Password: ServerToken(Server.ID) } }, function(Error, Response, Body)
             {
                 try
                 {
@@ -95,7 +95,7 @@ function UploadFile(Path)
 
         const File = FS.createReadStream(Path)
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/file', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
+        Request.post({ url: `${ServerURL(ServerResult.ID)}/file`, formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -125,7 +125,7 @@ function UploadVideo(Path)
 
         const File = FS.createReadStream(Path)
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/video', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
+        Request.post({ url: `${ServerURL(ServerResult.ID)}/video`, formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -155,7 +155,7 @@ function UploadImage(Path)
 
         const File = FS.createReadStream(Path)
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/image', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
+        Request.post({ url: `${ServerURL(ServerResult.ID)}/image`, formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {
@@ -185,7 +185,7 @@ function UploadVoice(Path)
 
         const File = FS.createReadStream(Path)
 
-        Request.post({ url: ServerURL(ServerResult.ID) + '/voice', formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
+        Request.post({ url: `${ServerURL(ServerResult.ID)}/voice`, formData: { Password: ServerToken(ServerResult.ID), File: File } }, function(Error, Response, Body)
         {
             try
             {

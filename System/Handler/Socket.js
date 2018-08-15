@@ -1,7 +1,8 @@
 const EventEmitter = require('events')
 
 const Misc = require('./Misc')
-const Packet = require('./Packet')
+const Packet = require('../Model/Packet')
+const ClientManager = require('./Client')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
@@ -72,7 +73,7 @@ class Socket extends EventEmitter
 
         this._Socket.on('close', (HasError) =>
         {
-            this.Remove()
+            ClientManager.Remove()
 
             Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
@@ -80,50 +81,6 @@ class Socket extends EventEmitter
         this._Socket.on('error', (Error) =>
         {
             Misc.Analyze('ClientError', { IP: this._Address, Error: Error })
-        })
-    }
-
-    Add()
-    {
-        global.DB.collection('client').insertOne(this)
-    }
-
-    Remove()
-    {
-        global.DB.collection('client').remove({_ID: this._ID})
-    }
-
-    IsConnected()
-    {
-        return new Promise((resolve, reject) =>
-        {
-            global.DB.collection('client').find({__Owner: this.__Owner}).limit(1).project({_id: 1}).toArray((Result, Error) =>
-            {
-                if (Misc.IsDefined(Error))
-                {
-                    Misc.Analyze('DBError', { Error: Error })
-                    resolve(false)
-                }
-
-                resolve(Result)
-            })
-        })
-    }
-
-    Find(Owner)
-    {
-        return new Promise((resolve, reject) =>
-        {
-            global.DB.collection('client').find({__Owner: Owner}).limit(1).toArray((Result, Error) =>
-            {
-                if (Misc.IsDefined(Error))
-                {
-                    Misc.Analyze('DBError', { Error: Error })
-                    resolve(null)
-                }
-
-                resolve(Result)
-            })
         })
     }
 
