@@ -1,9 +1,9 @@
 const Misc = require('../Handler/Misc')
 const Packet = require('../Model/Packet')
 const MessageType = require('../Model/DataType').Message
-const ClientManager = require('../Handler/Client')
+const ClientManager = require('../Handler/ClientHandler')
 
-module.exports = function(Client)
+module.exports = (Client) =>
 {
     /**
      * @Packet GetMessage

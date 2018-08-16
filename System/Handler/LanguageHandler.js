@@ -1,4 +1,6 @@
-const Scope =
+'use strict'
+
+const LanguageScope =
 {
     IR:
     [
@@ -28,4 +30,7 @@ module.exports.RegisterNumber = 0
 module.exports.RegisterEmailSubject = 1
 module.exports.RegisterEmailContent = 2
 
-module.exports = (Country, ID, Args) => Scope[Country][ID](Args)
+module.exports.Lang = (Country, ID, Args) =>
+{
+    return LanguageScope[Country][ID](Args)
+}

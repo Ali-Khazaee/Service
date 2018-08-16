@@ -1,6 +1,6 @@
 'use strict'
 
-const FS = require('fs')
+const FileSystem = require('fs')
 
 module.exports =
 {
@@ -8,8 +8,8 @@ module.exports =
     SERVER_STORAGE: './Storage/',
     SERVER_STORAGE_TEMP: './Storage/Temp/',
 
-    AUTH_PRIVATE_KEY: FS.readFileSync('./Storage/PrivateKey.pem'),
-    AUTH_PUBLIC_KEY: FS.readFileSync('./Storage/PublicKey.pem'),
+    AUTH_PRIVATE_KEY: FileSystem.readFileSync('./Storage/PrivateKey.pem'),
+    AUTH_PUBLIC_KEY: FileSystem.readFileSync('./Storage/PublicKey.pem'),
 
     EMAIL_HOST: 'smtp.gmail.com',
     EMAIL_SECURE: true,

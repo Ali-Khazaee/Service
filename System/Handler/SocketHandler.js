@@ -1,13 +1,15 @@
+'use strict'
+
 const EventEmitter = require('events')
 
-const Misc = require('./Misc')
+const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
-const ClientManager = require('./Client')
+const ClientHandler = require('./ClientHandler')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
 
-class Socket extends EventEmitter
+module.exports = class Socket extends EventEmitter
 {
     constructor(Socket)
     {
@@ -73,7 +75,7 @@ class Socket extends EventEmitter
 
         this._Socket.on('close', (HasError) =>
         {
-            ClientManager.Remove()
+            ClientHandler.Remove(this._ID)
 
             Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
@@ -97,28 +99,39 @@ class Socket extends EventEmitter
         this._Socket.write(BufferMessage)
     }
 
-    OnMessage(DataBuffer)
+    OnMessage(BufferMessage)
     {
-        let PacketID = DataBuffer.readUInt16LE(0)
+        let PacketID = BufferMessage.readUInt16LE(0)
 
         if (this.Auth(PacketID))
             return
 
-        this.RateLimit(PacketID).then(() =>
+        this.RateLimit(PacketID).then((Result) =>
         {
-            this.emit(PacketID, DataBuffer.readUInt32LE(6), DataBuffer.toString('utf8', HEADER_SIZE))
-        },
-        (Error) =>
-        {
-            Misc.Analyze('RateLimit', { IP: this._Address, Error: Error })
+            if (Result)
+                this.emit(PacketID, BufferMessage.readUInt32LE(6), BufferMessage.toString('utf8', HEADER_SIZE))
         })
+    }
+
+    Auth(PacketID)
+    {
+        switch (PacketID)
+        {
+            case Packet.GetMessage:
+            case Packet.SendMessage:
+            case Packet.OnDelivery:
+                if (Misc.IsUndefined(this.__Owner))
+                    return true
+        }
+
+        return false
     }
 
     RateLimit(PacketID)
     {
-        return new Promise((resolve, reject) =>
+        return new Promise((resolve) =>
         {
-            resolve()
+            resolve(true)
 
             /*
             global.DB.collection('ratelimit').find({ $and: [ { Packet: PacketID }, { Address: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray(function(Error, Result)
@@ -148,20 +161,4 @@ class Socket extends EventEmitter
             */
         })
     }
-
-    Auth(PacketID)
-    {
-        switch (PacketID)
-        {
-            case Packet.GetMessage:
-            case Packet.SendMessage:
-            case Packet.OnDelivery:
-                if (Misc.IsUndefined(this.__Owner))
-                    return true
-        }
-
-        return false
-    }
 }
-
-module.exports = Socket

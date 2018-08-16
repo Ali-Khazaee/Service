@@ -1,7 +1,7 @@
 {
-    "name": "channel-server",
-    "version": "0.0.7",
-    "description": "Channel Server Powered By Ali Khazaee",
+    "name": "channel-service",
+    "version": "0.0.8",
+    "description": "Channel Service Powered By Ali Khazaee",
     "main": "./System/App.js",
     "author": "Ali.Khazaee",
     "license": "MIT",
@@ -12,14 +12,14 @@
         "start": "node ./System/App.js"
     },
     "dependencies": {
-        "mongodb": "^3.0.8",
-        "nodemailer": "^4.6.7",
-        "request": "^2.87.0",
+        "mongodb": "^3.1.3",
+        "nodemailer": "^4.6.8",
+        "request": "^2.88.0",
         "winston": "^3.0.0"
     },
     "devDependencies": {
         "eslint-config-standard": "^11.0.0",
-        "eslint-plugin-import": "^2.12.0",
+        "eslint-plugin-import": "^2.14.0",
         "eslint-plugin-node": "^6.0.1",
         "eslint-plugin-promise": "^3.7.0",
         "eslint-plugin-standard": "^3.1.0",

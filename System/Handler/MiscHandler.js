@@ -9,12 +9,12 @@ const Logger = Winston.createLogger(
         transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
     })
 
-function Analyze(Tag, Data)
+module.exports.Analyze = (Tag, Message) =>
 {
-    Data = Data || { }
-    Data.CreatedTime = Time()
+    Message = Message || { }
+    Message.CreatedTime = Time()
 
-    Logger.log('error', `${Tag} ${Util.inspect(Data, false, null)}`)
+    Logger.log('error', `${Tag} ${Util.inspect(Message, false, null)}`)
 }
 
 function IsUndefined(Value)
@@ -59,12 +59,14 @@ function IsUndefined(Value)
     return isNaN(Value)
 }
 
-function IsDefined(Value)
+module.exports.IsUndefined = IsUndefined
+
+module.exports.IsDefined = (Value) =>
 {
     return !IsUndefined(Value)
 }
 
-function TimeMili()
+module.exports.TimeMili = () =>
 {
     return Math.floor(Date.now())
 }
@@ -74,7 +76,9 @@ function Time()
     return Math.floor(Date.now() / 1000)
 }
 
-function ReverseString(Value)
+module.exports.Time = Time
+
+module.exports.ReverseString = (Value) =>
 {
     let NewValue = ''
 
@@ -84,14 +88,14 @@ function ReverseString(Value)
     return NewValue
 }
 
-function IsInvalidJSON(Data)
+function IsInvalidJSON(Message)
 {
-    if (typeof Data === 'object')
+    if (typeof Message === 'object')
         return false
 
     try
     {
-        JSON.parse(Data)
+        JSON.parse(Message)
     }
     catch (e)
     {
@@ -101,12 +105,14 @@ function IsInvalidJSON(Data)
     return false
 }
 
-function IsValidJSON(Data)
+module.exports.IsInvalidJSON = IsInvalidJSON
+
+module.exports.IsValidJSON = (Message) =>
 {
-    return !IsInvalidJSON(Data)
+    return !IsInvalidJSON(Message)
 }
 
-function RandomString(Count)
+module.exports.RandomString = (Count) =>
 {
     let Result = ''
     const Possible = 'abcdefghijklmnopqrstuvwxyz'
@@ -117,7 +123,7 @@ function RandomString(Count)
     return Result
 }
 
-function RandomNumber(Count)
+module.exports.RandomNumber = (Count) =>
 {
     let Result = ''
     const Possible = '0123456789'
@@ -128,7 +134,7 @@ function RandomNumber(Count)
     return Result
 }
 
-function IsInvalidID(ID)
+module.exports.IsInvalidID = (ID) =>
 {
     if (global.MongoID.isValid(ID))
         return false
@@ -141,15 +147,3 @@ function IsInvalidID(ID)
 
     return !Valid
 }
-
-module.exports.ReverseString = ReverseString
-module.exports.IsInvalidJSON = IsInvalidJSON
-module.exports.RandomNumber = RandomNumber
-module.exports.RandomString = RandomString
-module.exports.IsValidJSON = IsValidJSON
-module.exports.IsUndefined = IsUndefined
-module.exports.IsDefined = IsDefined
-module.exports.IsInvalidID = IsInvalidID
-module.exports.Analyze = Analyze
-module.exports.TimeMili = TimeMili
-module.exports.Time = Time
