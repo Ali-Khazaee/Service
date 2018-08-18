@@ -1,5 +1,7 @@
 'use strict'
 
+// FixMe
+
 const FileSystem = require('fs')
 const Request = require('request')
 
@@ -20,23 +22,27 @@ function ServerToken(ID)
         case 1: return UploadConfig.UPLOAD_SERVER_2_TOKEN
     }
 
-    Misc.Analyze('OnServerTokenWarning', { ID: ID })
+    Misc.Analyze('UploadHandler-ServerToken', { ID: ID })
 }
+
+module.exports.ServerToken = ServerToken
 
 function ServerURL(ID)
 {
     if (Misc.IsUndefined(ServerList[ID]))
     {
-        Misc.Analyze('OnServerURLWarning', { ID: ID })
+        Misc.Analyze('UploadHandler-ServerURL', { ID: ID })
         return
     }
 
     return ServerList[ID].URL
 }
 
+module.exports.ServerURL = ServerURL
+
 function BestServerID()
 {
-    return new Promise(function(resolve)
+    return new Promise((resolve) =>
     {
         let Count = 0
         let Failed = true
@@ -80,6 +86,8 @@ function BestServerID()
         }
     })
 }
+
+module.exports.BestServerID = BestServerID
 
 function UploadFile(Path)
 {
@@ -201,9 +209,6 @@ function UploadVoice(Path)
     })
 }
 
-module.exports.ServerToken = ServerToken
-module.exports.BestServerID = BestServerID
-module.exports.ServerURL = ServerURL
 module.exports.UploadFile = UploadFile
 module.exports.UploadVideo = UploadVideo
 module.exports.UploadImage = UploadImage

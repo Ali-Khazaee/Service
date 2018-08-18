@@ -2,9 +2,9 @@
 
 const Config = require('../Config/Core')
 const Packet = require('../Model/Packet')
-const DataType = require('../Model/DataType')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
+const SignUp = require('../Model/DataType').SignUp
 const ClientManager = require('../Handler/ClientHandler')
 
 module.exports = (Client) =>
@@ -88,22 +88,22 @@ module.exports = (Client) =>
         if (CountryIsInvalid || !CountryPattern.test(Message.Number))
             return Client.Send(Packet.SignUpPhone, ID, { Result: 4 })
 
-        global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray(function(Error, Result)
+        global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
-            if (Error)
+            if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Error: Error })
+                Misc.Analyze('DBError', { Tag: Packet.SignUpPhone, Error: Error })
                 return Client.Send(Packet.SignUpPhone, ID, { Result: -1 })
             }
 
             if (Misc.IsDefined(Result[0]))
                 return Client.Send(Packet.SignUpPhone, ID, { Result: 5 })
 
-            global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray(function(Error2, Result2)
+            global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
-                if (Error2)
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Error: Error2 })
+                    Misc.Analyze('DBError', { Tag: Packet.SignUpPhone, Error: Error2 })
                     return Client.Send(Packet.SignUpPhone, ID, { Result: -1 })
                 }
 
@@ -112,11 +112,11 @@ module.exports = (Client) =>
 
                 let Code = 55555 // FixMe Misc.RandomNumber(5)
 
-                global.DB.collection('register').insertOne({ Type: DataType.SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, function(Error3)
+                global.DB.collection('register').insertOne({ Type: SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, (Error3) =>
                 {
-                    if (Error3)
+                    if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Error: Error3 })
+                        Misc.Analyze('DBError', { Tag: Packet.SignUpPhone, Error: Error3 })
                         return Client.Send(Packet.SignUpPhone, ID, { Result: -1 })
                     }
 
@@ -147,73 +147,74 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.on(Packet.SignUpPhoneVerify, function(Message)
+    Client.on(Packet.SignUpPhoneVerify, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || Message.Code.length !== 5)
-            return Client.Send({ Result: 1 })
+            return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
-            return Client.Send({ Result: 2 })
+            return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 2 })
 
-        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.SignUp.Number }, { Time: { $gt: Misc.Time() - 900 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray(function(Error, Result)
+        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: SignUp.Number }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray((Error, Result) =>
         {
-            if (Error)
+            if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Error: Error })
-                return Client.Send({ Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.SignUpPhoneVerify, Error: Error })
+                return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send({ Result: 3 })
+                return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 3 })
 
-            global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray(function(Error2, Result2)
+            global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
-                if (Error2)
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Error: Error2 })
-                    return Client.Send({ Result: -1 })
+                    Misc.Analyze('DBError', { Tag: Packet.SignUpPhoneVerify, Error: Error2 })
+                    return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -1 })
                 }
 
                 if (Misc.IsDefined(Result2[0]))
-                    return Client.Send({ Result: 4 })
+                    return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 4 })
 
-                global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray(function(Error3, Result3)
+                global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray((Error3, Result3) =>
                 {
-                    if (Error3)
+                    if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Error: Error3 })
-                        return Client.Send({ Result: -1 })
+                        Misc.Analyze('DBError', { Tag: Packet.SignUpPhoneVerify, Error: Error3 })
+                        return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -1 })
                     }
 
                     if (Misc.IsDefined(Result3[0]))
-                        return Client.Send({ Result: 5 })
+                        return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 5 })
 
-                    global.DB.collection('account').insertOne({ Username: Message.Username, Number: Message.Number, Time: Misc.Time() }, async function(Error4, Result4)
+                    global.DB.collection('account').insertOne({ Username: Message.Username, Number: Message.Number, Time: Misc.Time() }, (Error4, Result4) =>
                     {
-                        if (Error4)
+                        if (Misc.IsDefined(Error4))
                         {
-                            Misc.Analyze('DBError', { Error: Error4 })
-                            return Client.Send({ Result: -1 })
+                            Misc.Analyze('DBError', { Tag: Packet.SignUpPhoneVerify, Error: Error4 })
+                            return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -1 })
                         }
 
-                        const AuthResult = await Auth.Create(Result4.insertedId)
-
-                        if (AuthResult.Result !== 0)
-                            return Client.Send({ Result: -3 })
-
-                        global.DB.collection('key').insertOne({ Owner: Result4.insertedId, Key: AuthResult.Key, Time: Misc.Time() }, async function(Error5)
+                        Auth.AuthCreate(Result4.insertedId).then((Result5) =>
                         {
-                            if (Error5)
+                            if (Result5.Result !== 0)
+                                return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -3 })
+
+                            global.DB.collection('key').insertOne({ Owner: Result4.insertedId, Key: Result5.Key, Time: Misc.Time() }, (Error5) =>
                             {
-                                Misc.Analyze('DBError', { Error: Error5 })
-                                return Client.Send({ Result: -1 })
-                            }
+                                if (Misc.IsDefined(Error5))
+                                {
+                                    Misc.Analyze('DBError', { Tag: Packet.SignUpPhoneVerify, Error: Error5 })
+                                    return Client.Send(Packet.SignUpPhoneVerify, ID, { Result: -1 })
+                                }
 
-                            Client.__Owner = Result4.insertedId
+                                Client.__Owner = Result4.insertedId
 
-                            ClientManager.Add(Client)
+                                ClientManager.Add(Client)
 
-                            Client.Send({ Result: 0, ID: Result4.insertedId, Key: AuthResult.Key })
+                                Client.Send(Packet.SignUpPhoneVerify, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
+                            })
                         })
                     })
                 })
@@ -230,28 +231,32 @@ module.exports = (Client) =>
      *
      * Result: 1 >> Key ( Undefined )
      * Result: 2 >> Key Doesn't exist
+     * Result: 3 >> Already Authenticated
      */
-    Client.on(Packet.Authentication, function(Message)
+    Client.on(Packet.Authentication, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Key))
-            return Client.Send(Packet.Authentication, { Result: 1 })
+            return Client.Send(Packet.Authentication, ID, { Result: 1 })
 
-        global.DB.collection('key').find({ $and: [ { Key: Message.Key }, { Revoke: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray(function(Error, Result)
+        global.DB.collection('key').find({ $and: [ { Key: Message.Key }, { Revoke: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray((Error, Result) =>
         {
-            if (Error)
+            if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Error: Error })
-                return Client.Send(Packet.Authentication, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.Authentication, Error: Error })
+                return Client.Send(Packet.Authentication, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.Authentication, { Result: 2 })
+                return Client.Send(Packet.Authentication, ID, { Result: 2 })
+
+            if (Misc.IsDefined(Client.__Owner))
+                return Client.Send(Packet.Authentication, ID, { Result: 3 })
 
             Client.__Owner = Result[0].Owner
 
             ClientManager.Add(Client)
 
-            Client.Send(Packet.Authentication, { Result: 0 })
+            Client.Send(Packet.Authentication, ID, { Result: 0 })
 
             Misc.Analyze('Request', { ID: Packet.Authentication, IP: Client._Address })
         })
