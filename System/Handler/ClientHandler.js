@@ -12,11 +12,11 @@ module.exports.Remove = (ID) =>
     global.DB.collection('client').remove({ ID: ID })
 }
 
-module.exports.Find = (Owner) =>
+module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 {
     return new Promise((resolve) =>
     {
-        global.DB.collection('client').find({ Owner: Owner }).limit(1).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
+        /*global.DB.collection('client').find({ Owner: Owner }).limit(1).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -25,7 +25,10 @@ module.exports.Find = (Owner) =>
                 return
             }
 
+            if (typeof CallBack === 'function')
+                CallBack()
+
             resolve(Result[0])
-        })
+        })*/
     })
 }
