@@ -8,6 +8,11 @@ module.exports =
         Email: 1
     },
 
+    SignIn:
+    {
+        Number: 1
+    },
+
     Message:
     {
         TEXT: 0,

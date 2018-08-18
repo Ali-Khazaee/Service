@@ -5,6 +5,7 @@ const Packet = require('../Model/Packet')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
 const SignUp = require('../Model/DataType').SignUp
+const SignIn = require('../Model/DataType').SignIn
 const ClientManager = require('../Handler/ClientHandler')
 
 module.exports = (Client) =>
@@ -16,7 +17,7 @@ module.exports = (Client) =>
      *
      * @Param {string} Username
      *
-     * Result: 1 >> Username ( Undefined, GT: 32, LT: 3, NQ: Regex )
+     * Result: 1 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
      * Result: 2 >> Username Exist
      */
     Client.on(Packet.Username, (ID, Message) =>
@@ -56,7 +57,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> Country Undefined
      * Result: 2 >> Number Undefined
-     * Result: 3 >> Username ( Undefined, GT: 32, LT: 3, NQ: Regex )
+     * Result: 3 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
      * Result: 4 >> Country | Number ( Not Allowed )
      * Result: 5 >> Username Already Used
      * Result: 6 >> Number Already Used
@@ -259,6 +260,51 @@ module.exports = (Client) =>
             Client.Send(Packet.Authentication, ID, { Result: 0 })
 
             Misc.Analyze('Request', { ID: Packet.Authentication, IP: Client._Address })
+        })
+    })
+
+    /**
+     * @Packet SignInPhone
+     *
+     * @Description Sign In Az Tariqe Phone Marhale Aval
+     *
+     * @Param {string} PhoneNumber
+     *
+     * Result: 1 >> PhoneNumber ( Undefined, NE: Regex )
+     * Result: 2 >> PhoneNumber Dosen't Exist
+     */
+    Client.on(Packet.SignInPhone, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.PhoneNumber) || !Config.PATTERN_IR_PHONE.test(Message.PhoneNumber))
+            return Client.Send(Packet.SignInPhone, ID, { Result: 1 })
+
+        global.DB.collection('account').find({ Number: Message.PhoneNumber }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.PhoneNumber, Error: Error })
+                return Client.Send(Packet.SignInPhone, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.SignInPhone, ID, { Result: 2 })
+
+            let Code = 55555 // Fix Me - Misc.RandomNumber(5)
+
+            global.DB.collection('register').insertOne({ Type: SignIn.Number, Number: Message.Number, Code: Code, Time: Misc.Time() }, (Error2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.PhoneNumber, Error: Error2 })
+                    return Client.Send(Packet.SignInPhone, ID, { Result: -1 })
+                }
+
+                // Fix Me - Add Request To SMS Panel
+
+                Client.Send(Packet.SignInPhone, ID, { Result: 0 })
+
+                Misc.Analyze('Request', { ID: Packet.SignInPhone, IP: Client._Address })
+            })
         })
     })
 }
