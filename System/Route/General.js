@@ -10,7 +10,7 @@ module.exports = (Client) =>
     /**
      * @Packet Username
      *
-     * @Description DarKhast e Bar Resie Username
+     * @Description BarResie Azad Bodane Username
      *
      * @Param {string} Username
      *
@@ -44,7 +44,7 @@ module.exports = (Client) =>
     /**
      * @Packet Authentication
      *
-     * @Description DarKhast e Ehraz e Hoviat
+     * @Description Sabt e Hoviat Roye Connection
      *
      * @Param {string} Key
      *

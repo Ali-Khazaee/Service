@@ -2,10 +2,10 @@
 
 const Config = require('../Config/Core')
 const Packet = require('../Model/Packet')
-const DataType = require('../Model/DataType')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
 const ClientManager = require('../Handler/ClientHandler')
+const DataType = require('../Model/DataType').Authentication
 
 module.exports = (Client) =>
 {
@@ -38,8 +38,6 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.text(Message.Username))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 3 })
 
-        Message.Username = Message.Username.toLowerCase()
-
         let CountryPattern
         let CountryIsInvalid = true
 
@@ -53,6 +51,8 @@ module.exports = (Client) =>
 
         if (CountryIsInvalid || !CountryPattern.test(Message.Number))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 4 })
+
+        Message.Username = Message.Username.toLowerCase()
 
         global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
@@ -78,7 +78,7 @@ module.exports = (Client) =>
 
                 let Code = 55555 // FixMe Misc.RandomNumber(5)
 
-                global.DB.collection('register').insertOne({ Type: DataType.SignUp.Number, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, (Error3) =>
+                global.DB.collection('register').insertOne({ Type: DataType.PhoneSignUp, Number: Message.Number, Username: Message.Username, Code: Code, Time: Misc.Time() }, (Error3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
@@ -121,7 +121,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Number))
             return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 2 })
 
-        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.SignUp.Number }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray((Error, Result) =>
+        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.PhoneSignUp }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 0, Username: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -175,9 +175,12 @@ module.exports = (Client) =>
                                     return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
                                 }
 
-                                Client.__Owner = Result4.insertedId
+                                if (Misc.IsUndefined(Client.__Owner))
+                                {
+                                    Client.__Owner = Result4.insertedId
 
-                                ClientManager.Add(Client)
+                                    ClientManager.Add(Client)
+                                }
 
                                 Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
                             })
@@ -191,7 +194,7 @@ module.exports = (Client) =>
     /**
      * @Packet PhoneSignIn
      *
-     * @Description Sign In Az Tarighe Phone Marhale Aval
+     * @Description Vorod Az Tarighe Phone Marhale Aval
      *
      * @Param {string} Number
      *
@@ -216,7 +219,7 @@ module.exports = (Client) =>
 
             let Code = 55555 // FixMe - Misc.RandomNumber(5)
 
-            global.DB.collection('register').insertOne({ Type: DataType.SignIn.Number, Number: Message.Number, Code: Code, Time: Misc.Time() }, (Error2) =>
+            global.DB.collection('register').insertOne({ Owner: Result[0]._id, Type: DataType.PhoneSignIn, Number: Message.Number, Code: Code, Time: Misc.Time() }, (Error2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -234,9 +237,9 @@ module.exports = (Client) =>
     })
 
     /**
-     * @PacketID SignInPhoneVerify
+     * @PacketID PhoneVerifySignIn
      *
-     * @Description Taeedie Sing in Az Tarighe Phone Marhale Dovom
+     * @Description Taeedie Vorod Az Tarighe Phone Marhale Dovom
      *
      * @Param {string} Number
      * @Param {string} Code
@@ -244,82 +247,50 @@ module.exports = (Client) =>
      * Result: 1 >> Code ( Undefined, Invalid )
      * Result: 2 >> Number == Undefined
      * Result: 3 >> Request Invalid
-     * Result: 4 >> Number Already Used
-     * Result: 5 >> Username Already Used
      *
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.on(Packet.SignInPhoneVerify, (ID, Message) =>
+    Client.on(Packet.PhoneVerifySignIn, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || Message.Code.length !== 5)
-            return Client.Send(Packet.SignInPhoneVerify, ID, { Result: 1 })
+            return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
-            return Client.Send(Packet.SignInPhoneVerify, ID, { Result: 2 })
+            return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 2 })
 
-        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: SignIn.Number }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Username: 1 }).toArray((Error, Result) =>
+        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.PhoneSignIn }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Owner: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.SignInPhoneVerify, Error: Error })
-                return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignIn, Error: Error })
+                return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.SignInPhoneVerify, ID, { Result: 3 })
+                return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 3 })
 
-            global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            Auth.AuthCreate(Result[0].Owner).then((Result2) =>
             {
-                if (Misc.IsDefined(Error2))
-                {
-                    Misc.Analyze('DBError', { Tag: Packet.SignInPhoneVerify, Error: Error2 })
-                    return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -1 })
-                }
+                if (Result2.Result !== 0)
+                    return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -3 })
 
-                if (Misc.IsDefined(Result2[0]))
-                    return Client.Send(Packet.SignInPhoneVerify, ID, { Result: 4 })
-
-                global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray((Error3, Result3) =>
+                global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Misc.Time() }, (Error2) =>
                 {
-                    if (Misc.IsDefined(Error3))
+                    if (Misc.IsDefined(Error2))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.SignInPhoneVerify, Error: Error3 })
-                        return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -1 })
+                        Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignIn, Error: Error2 })
+                        return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -1 })
                     }
 
-                    if (Misc.IsDefined(Result3[0]))
-                        return Client.Send(Packet.SignInPhoneVerify, ID, { Result: 5 })
-
-                    global.DB.collection('account').insertOne({ Username: Message.Username, Number: Message.Number, Time: Misc.Time() }, (Error4, Result4) =>
+                    if (Misc.IsUndefined(Client.__Owner))
                     {
-                        if (Misc.IsDefined(Error4))
-                        {
-                            Misc.Analyze('DBError', { Tag: Packet.SignInPhoneVerify, Error: Error4 })
-                            return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -1 })
-                        }
+                        Client.__Owner = Result[0].Owner
 
-                        Auth.AuthCreate(Result4.insertedId).then((Result5) =>
-                        {
-                            if (Result5.Result !== 0)
-                                return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -3 })
+                        ClientManager.Add(Client)
+                    }
 
-                            global.DB.collection('key').insertOne({ Owner: Result4.insertedId, Key: Result5.Key, Time: Misc.Time() }, (Error5) =>
-                            {
-                                if (Misc.IsDefined(Error5))
-                                {
-                                    Misc.Analyze('DBError', { Tag: Packet.SignInPhoneVerify, Error: Error5 })
-                                    return Client.Send(Packet.SignInPhoneVerify, ID, { Result: -1 })
-                                }
-
-                                Client.__Owner = Result4.insertedId
-
-                                ClientManager.Add(Client)
-
-                                Client.Send(Packet.SignInPhoneVerify, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
-                            })
-                        })
-                    })
+                    Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })
             })
         })

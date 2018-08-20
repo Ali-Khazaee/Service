@@ -4,8 +4,8 @@ module.exports =
 {
     Authentication:
     {
-        NumberSignUp: 0,
-        NumberSignIn: 1,
+        PhoneSignUp: 0,
+        PhoneSignIn: 1,
         EmailSignUp: 2
     },
 
