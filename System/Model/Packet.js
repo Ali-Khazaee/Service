@@ -28,7 +28,7 @@ module.exports =
     PersonMessageUpdate: 206,
 
     GroupCreate: 100, // Implemented
-    GroupDelete: 101,
+    GroupDelete: 101, // Implemented
     GroupRename: 103,
     GroupPicture: 104,
     GroupMemberAdd: 105,

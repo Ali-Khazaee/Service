@@ -154,7 +154,7 @@ module.exports = (Client) =>
             if (Result > 100)
                 return Client.Send(Packet.GroupCreate, ID, { Result: 2 })
 
-            global.DB.collection('message').insertOne({ Name: Message.Name }, (Error2, Result2) =>
+            global.DB.collection('message').insertOne({ Name: Message.Name, Owner: Client.__Owner }, (Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -166,6 +166,34 @@ module.exports = (Client) =>
 
                 Misc.Analyze('Request', { ID: Packet.GroupCreate, IP: Client._Address })
             })
+        })
+    })
+
+    /**
+     * @Packet GroupDelete
+     *
+     * @Description Hazv e Goroh
+     *
+     * @Param {string} ID
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     */
+    Client.on(Packet.GroupDelete, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupDelete, ID, { Result: 1 })
+
+        global.DB.collection('group').updateOne({ $and: [ { Owner: global.MongoID(Message.ID) }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.Time() } }, (Error) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error })
+                return Client.Send(Packet.GroupDelete, ID, { Result: -1 })
+            }
+
+            Client.Send(Packet.GroupCreate, ID, { Result: 0 })
+
+            Misc.Analyze('Request', { ID: Packet.GroupCreate, IP: Client._Address })
         })
     })
 }
