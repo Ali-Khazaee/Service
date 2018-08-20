@@ -27,7 +27,7 @@ module.exports =
     PersonMessageDocument: 205, // Don't Implement
     PersonMessageUpdate: 206,
 
-    GroupCreate: 100,
+    GroupCreate: 100, // Implemented
     GroupDelete: 101,
     GroupRename: 103,
     GroupPicture: 104,
@@ -40,6 +40,7 @@ module.exports =
     GroupMessageSticker: 111, // Don't Implement
     GroupMessageDocument: 112, // Don't Implement
     GroupMessageUpdate: 113,
+    GroupList: 114,
 
     Username: 300,
     Authentication: 301

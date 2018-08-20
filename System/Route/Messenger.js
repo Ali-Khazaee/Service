@@ -65,7 +65,7 @@ module.exports = (Client) =>
     /**
      * @Packet PersonMessageSend
      *
-     * @Description DarKhast e Ersal e Message
+     * @Description Ersal e Message Be Shakhs
      *
      * @Param {string} To
      * @Param {string} Message
@@ -75,8 +75,8 @@ module.exports = (Client) =>
      * Result: 2 >> Message ( Undefined )
      * Result: 3 >> To ( Doesn't Exist )
      *
-     * @Return: ID: DataMessage._id,
-     *          Time: Time
+     * @Return: ID: ID e Message
+     *          Time: Zaman e Message
      */
     Client.on(Packet.PersonMessageSend, (ID, Message) =>
     {
@@ -114,9 +114,9 @@ module.exports = (Client) =>
                     return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
                 }
 
-                Client.Send(Packet.SendMessage, ID, { Result: 0, ID: Result2.insertedId, Time: Time })
+                Client.Send(Packet.PersonMessageSend, ID, { Result: 0, ID: Result2.insertedId, Time: Time })
 
-                ClientHandler.Send(Message.To, Packet.SendMessage, ID, DataMessage, () =>
+                ClientHandler.Send(Message.To, Packet.PersonMessageSend, ID, DataMessage, () =>
                 {
                     global.DB.collection('message').updateOne({ _id: global.MongoID(Result2.insertedId) }, { $set: { Delivery: Time } })
                 })
@@ -127,22 +127,45 @@ module.exports = (Client) =>
     })
 
     /**
-     * @Packet SendMessage
+     * @Packet GroupCreate
      *
-     * @Description DarKhast e Ersal e Message
+     * @Description Sakhtane Goroh
      *
-     * @Param {string} To
-     * @Param {string} Message
-     * @Param {string} ReplyID - Optional ( Age Ye Messageio Reply Karde Bashe ID e On Message e )
+     * @Param {string} Name
      *
-     * Result: 1 >> To ( Undefined, Invalid )
-     * Result: 2 >> Message ( Undefined )
-     * Result: 3 >> To ( Doesn't Exist )
+     * Result: 1 >> Name ( Undefined, GT: 32 )
+     * Result: 2 >> Too Many Group
      *
-     * @Return: ID: DataMessage.insertedId, Time: Time, Delivery: DataMessage.Delivery
+     * @Return: ID: ID e Group e
      */
-    Client.on(Packet.SendMessage, (ID, Message) =>
+    Client.on(Packet.GroupCreate, (ID, Message) =>
     {
+        if (Misc.IsUndefined(Message.Name) || Message.Name.length > 32)
+            return Client.Send(Packet.GroupCreate, ID, { Result: 1 })
 
+        global.DB.collection('group').find({ $and: [ { Owner: global.MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).count((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error })
+                return Client.Send(Packet.GroupCreate, ID, { Result: -1 })
+            }
+
+            if (Result > 100)
+                return Client.Send(Packet.GroupCreate, ID, { Result: 2 })
+
+            global.DB.collection('message').insertOne({ Name: Message.Name }, (Error2, Result2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error2 })
+                    return Client.Send(Packet.GroupCreate, ID, { Result: -1 })
+                }
+
+                Client.Send(Packet.GroupCreate, ID, { Result: 0, ID: Result2.insertedId })
+
+                Misc.Analyze('Request', { ID: Packet.GroupCreate, IP: Client._Address })
+            })
+        })
     })
 }
