@@ -10,7 +10,7 @@ module.exports = (Client) =>
     /**
      * @Packet PersonMessageList
      *
-     * @Description DarKhast e Gereftan e List e Akharin Message Ha
+     * @Description Gereftan e List e Akharin Message Ha
      *
      * @Param {string} Who
      * @Param {int} Skip
@@ -27,7 +27,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Skip))
             Message.Skip = 0
 
-        global.DB.collection('message').find({ $or: [ { $and: [ { From: global.MongoID(Client.__Owner) }, { To: global.MongoID(Message.Who) } ] }, { $and: [ { From: global.MongoID(Message.Who) }, { To: global.MongoID(Client.__Owner) } ] } ] }).sort({ Time: 1 }).skip(Message.Skip).limit(10).toArray((Error, Result) =>
+        global.DB.collection('message').find({ $and: [ { $or: [ { $and: [ { From: global.MongoID(Client.__Owner) }, { To: global.MongoID(Message.Who) } ] }, { $and: [ { From: global.MongoID(Message.Who) }, { To: global.MongoID(Client.__Owner) } ] } ] }, { Delete: { $exists: false } } ] }).sort({ Time: 1 }).skip(Message.Skip).limit(10).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -39,7 +39,7 @@ module.exports = (Client) =>
 
             for (let I = 0; I < Result.length; I++)
             {
-                global.DB.collection('message').find({ $and: [ { _id: Result[I]._id }, { Delivery: { $exists: false } } ] }).toArray((Error2, Result2) =>
+                global.DB.collection('message').find({ $and: [ { _id: Result[I]._id }, { From: global.MongoID(Message.Who) }, { Delivery: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
                 {
                     if (Misc.IsDefined(Error2))
                     {
@@ -52,10 +52,9 @@ module.exports = (Client) =>
 
                     let Time = Misc.TimeMili()
 
-                    ClientHandler.Send(Result2[0].From, Packet.OnDelivery, ID, { ID: Result2[0]._id, Delivery: Time }, () =>
-                    {
-                        global.DB.collection('message').updateOne({ _id: Result[I]._id }, { $set: { Delivery: Time } })
-                    })
+                    global.DB.collection('message').updateOne({ _id: Result2[0]._id }, { $set: { Delivery: Time } })
+
+                    ClientHandler.Send(Message.Who, Packet.PersonMessageDelivery, ID, { ID: Result2[0]._id, Delivery: Time })
                 })
             }
 
