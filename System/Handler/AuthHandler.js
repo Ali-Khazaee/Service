@@ -73,9 +73,9 @@ module.exports.AuthVerify = (Key) =>
 
 module.exports.AuthDelete = (Key) =>
 {
-    return new Promise(function(resolve)
+    return new Promise((resolve) =>
     {
-        global.DB.collection('token').updateOne({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.Time() } }, function(Error)
+        global.DB.collection('token').updateOne({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.Time() } }, (Error) =>
         {
             if (Misc.IsDefined(Error))
             {

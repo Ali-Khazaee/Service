@@ -40,6 +40,7 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
 
             Misc.Analyze('ClientConnected', { IP: Client._Address })
 
+            require('./Route/General')(Client)
             require('./Route/Authentication')(Client)
             require('./Route/Messenger')(Client)
         })

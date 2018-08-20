@@ -110,6 +110,8 @@ module.exports = class Socket extends EventEmitter
         {
             if (Result)
                 this.emit(PacketID, BufferMessage.readUInt32LE(6), BufferMessage.toString('utf8', HEADER_SIZE))
+            else
+                Misc.Analyze('RateLimit', { PacketID: PacketID, IP: this._Address, Owner: this.__Owner })
         })
     }
 
@@ -117,48 +119,59 @@ module.exports = class Socket extends EventEmitter
     {
         switch (PacketID)
         {
-            case Packet.GetMessage:
-            case Packet.SendMessage:
-            case Packet.OnDelivery:
-                if (Misc.IsUndefined(this.__Owner))
-                    return true
+            case Packet.PhoneSignUp:
+            case Packet.PhoneVerifySignUp:
+            case Packet.PhoneSignIn:
+            case Packet.PhoneVerifySignIn:
+            case Packet.EmailSignUp:
+            case Packet.EmailVerifySignUp:
+            case Packet.EmailRecovery:
+            case Packet.EmailSignIn:
+            case Packet.GoogleSignIn:
+            case Packet.UsernameSignIn:
+            case Packet.Username:
+            case Packet.Authentication:
+                return false
         }
 
-        return false
+        return true
     }
 
-    RateLimit(PacketID)
+    RateLimit(Name, Count, Time)
     {
         return new Promise((resolve) =>
         {
-            resolve(true)
+            let CurrentTime = Misc.Time()
+            let Key = Name + '_' + Misc.IsDefined(this.__Owner) ? this.__Owner : this._Address
 
-            /*
-            global.DB.collection('ratelimit').find({ $and: [ { Packet: PacketID }, { Address: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray(function(Error, Result)
+            global.DB.collection('ratelimit').find({ $and: [ { Name: Name }, { Key: Key } ] }).limit(1).project({ Time: 1, Count: 1 }).toArray((Error, Result) =>
             {
-                if (Error)
+                if (Misc.IsDefined(Error))
                 {
-                    Misc.Analyze('DBError', { Error: Error })
-                    return Client.Send(Packet.Authentication, { Result: -1 })
+                    Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
+                    return resolve(false)
                 }
 
                 if (Misc.IsUndefined(Result[0]))
-                    return Client.Send(Packet.Authentication, { Result: 2 })
+                {
+                    global.DB.collection('ratelimit').insertOne({ Name: Name, Key: Key, Count: 1, Expire: CurrentTime + Time })
+                    return resolve(true)
+                }
 
-                Client.__Owner = Result[0].Owner
+                if (Result[0].Expire < CurrentTime)
+                {
+                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: CurrentTime + Time } })
+                    return resolve(true)
+                }
 
-                ClientManager.Add(Client)
+                if (Result[0].Count <= Count)
+                {
+                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: Result[0].Count + 1 } })
+                    return resolve(true)
+                }
 
-                Client.Send(Packet.Authentication, { Result: 0 })
-
-                Misc.Analyze('Request', { ID: Packet.Authentication, IP: Client._Address })
+                resolve(false)
             })
-
-            if (true)
-                resolve('stuff worked')
-            else
-                reject(Error('It broke'))
-            */
         })
     }
 }

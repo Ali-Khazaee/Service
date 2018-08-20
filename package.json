@@ -1,12 +1,12 @@
 {
     "name": "channel-service",
-    "version": "0.0.8",
+    "version": "0.1.0",
     "description": "Channel Service Powered By Ali Khazaee",
     "main": "./System/App.js",
     "author": "Ali.Khazaee",
     "license": "MIT",
     "engines": {
-        "node": "10.6.0"
+        "node": "10.9.0"
     },
     "scripts": {
         "start": "node ./System/App.js"
@@ -27,6 +27,6 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/ali-khazaee/android.git"
+        "url": "https://github.com/ali-khazaee/service.git"
     }
 }

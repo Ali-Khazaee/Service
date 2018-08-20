@@ -14,6 +14,8 @@ module.exports.Analyze = (Tag, Message) =>
     Message = Message || { }
     Message.CreatedTime = Time()
 
+    // FixMe
+
     Logger.log('error', `${Tag} ${Util.inspect(Message, false, null)}`)
 }
 
@@ -33,6 +35,9 @@ function IsUndefined(Value)
 
     if (typeof Value === 'object' && Value.constructor === Array && Value.length === 0)
         return true
+
+    if (typeof CallBack === 'function')
+        return false
 
     if (Value.toString === Object.prototype.toString)
     {

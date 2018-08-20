@@ -2,23 +2,30 @@
 
 module.exports =
 {
-    SignUpPhone: 1,
-    SignUpPhoneVerify: 2,
-    SignInPhone: 3,
-    SignInPhoneVerify: 4,
+    PhoneSignUp: 1, // Implemented
+    PhoneVerifySignUp: 2, // Implemented
 
-    SignUpEmail: 5,
-    SignUpEmailVerify: 6,
-    SignInEmailVerify: 7,
+    PhoneSignIn: 3, // Implemented
+    PhoneVerifySignIn: 4, // Implemented
 
-    SignWithGoogle: 8,
+    EmailSignUp: 5,
+    EmailVerifySignUp: 6,
+    EmailRecovery: 7,
+    EmailSignIn: 8,
 
-    PersonMessageSend: 200,
-    PersonMessageList: 201,
+    GoogleSignIn: 9,
+
+    UsernameSignIn: 10,
+
+    PasswordChange: 11,
+
+    PersonMessageSend: 200, // Implemented
+    PersonMessageList: 201, // Implemented
     PersonMessageDelivery: 202,
-    PersonMessageSticker: 203,
+    PersonMessageSticker: 203, // Don't Implement
     PersonMessageDelete: 204,
-    PersonMessageDocument: 205,
+    PersonMessageDocument: 205, // Don't Implement
+    PersonMessageUpdate: 206,
 
     GroupCreate: 100,
     GroupDelete: 101,
@@ -30,8 +37,9 @@ module.exports =
     GroupMessageList: 108,
     GroupMessageDelivery: 109,
     GroupMessageDelete: 110,
-    GroupMessageSticker: 111,
-    GroupMessageDocument: 112,
+    GroupMessageSticker: 111, // Don't Implemented
+    GroupMessageDocument: 112, // Don't Implemented
+    GroupMessageUpdate: 113,
 
     Username: 300,
     Authentication: 301

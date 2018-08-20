@@ -2,20 +2,16 @@
 
 module.exports =
 {
-    SignUp:
+    Authentication:
     {
-        Number: 0,
-        Email: 1
-    },
-
-    SignIn:
-    {
-        Number: 1
+        NumberSignUp: 0,
+        NumberSignIn: 1,
+        EmailSignUp: 2
     },
 
     Message:
     {
-        TEXT: 0,
+        TEXT: 0, // Implemented
         IMAGE: 1,
         VIDEO: 2,
         VOICE: 3,

@@ -8,7 +8,7 @@ const ClientHandler = require('../Handler/ClientHandler')
 module.exports = (Client) =>
 {
     /**
-     * @Packet GetMessage
+     * @Packet PersonMessageList
      *
      * @Description DarKhast e Gereftan e List e Akharin Message Ha
      *
@@ -17,10 +17,10 @@ module.exports = (Client) =>
      *
      * Result: 1 >> Who ( Undefined, Invalid )
      */
-    Client.on(Packet.GetMessage, (ID, Message) =>
+    Client.on(Packet.PersonMessageList, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
-            return Client.Send(Packet.Username, ID, { Result: 1 })
+            return Client.Send(Packet.PersonMessageList, ID, { Result: 1 })
 
         Message.Skip = parseInt(Message.Skip || 0)
 
@@ -31,11 +31,11 @@ module.exports = (Client) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.GetMessage, Error: Error })
-                return Client.Send(Packet.GetMessage, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.PersonMessageList, Error: Error })
+                return Client.Send(Packet.PersonMessageList, ID, { Result: -1 })
             }
 
-            Client.Send(Packet.GetMessage, ID, { Result: 0, Message: Result })
+            Client.Send(Packet.PersonMessageList, ID, { Result: 0, Message: Result })
 
             for (let I = 0; I < Result.length; I++)
             {
@@ -43,8 +43,8 @@ module.exports = (Client) =>
                 {
                     if (Misc.IsDefined(Error2))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GetMessage, Error: Error2 })
-                        return Client.Send(Packet.GetMessage, ID, { Result: -1 })
+                        Misc.Analyze('DBError', { Tag: Packet.PersonMessageList, Error: Error2 })
+                        return Client.Send(Packet.PersonMessageList, ID, { Result: -1 })
                     }
 
                     if (Misc.IsUndefined(Result2[0]))
@@ -59,12 +59,12 @@ module.exports = (Client) =>
                 })
             }
 
-            Misc.Analyze('Request', { ID: Packet.GetMessage, IP: Client._Address })
+            Misc.Analyze('Request', { ID: Packet.PersonMessageList, IP: Client._Address })
         })
     })
 
     /**
-     * @Packet SendMessage
+     * @Packet PersonMessageSend
      *
      * @Description DarKhast e Ersal e Message
      *
@@ -76,15 +76,16 @@ module.exports = (Client) =>
      * Result: 2 >> Message ( Undefined )
      * Result: 3 >> To ( Doesn't Exist )
      *
-     * @Return: ID: DataMessage.insertedId, Time: Time, Delivery: DataMessage.Delivery
+     * @Return: ID: DataMessage._id,
+     *          Time: Time
      */
-    Client.on(Packet.SendMessage, (ID, Message) =>
+    Client.on(Packet.PersonMessageSend, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.To) || Misc.IsInvalidID(Message.To))
-            return Client.Send(Packet.Username, ID, { Result: 1 })
+            return Client.Send(Packet.PersonMessageSend, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Message))
-            return Client.Send(Packet.Username, ID, { Result: 2 })
+            return Client.Send(Packet.PersonMessageSend, ID, { Result: 2 })
 
         if (Message.Message.length > 4096)
             Message.Message = Message.Message.substring(0, 4096)
@@ -93,12 +94,12 @@ module.exports = (Client) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.SendMessage, Error: Error })
-                return Client.Send(Packet.SendMessage, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error })
+                return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.Username, ID, { Result: 3 })
+                return Client.Send(Packet.PersonMessageSend, ID, { Result: 3 })
 
             const Time = Misc.TimeMili()
             const DataMessage = { From: global.MongoID(Client.__Owner), To: global.MongoID(Message.To), Message: Message.Message, Type: MessageType.TEXT, Time: Time }
@@ -110,8 +111,8 @@ module.exports = (Client) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.SendMessage, Error: Error2 })
-                    return Client.Send(Packet.SendMessage, ID, { Result: -1 })
+                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error2 })
+                    return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
                 }
 
                 Client.Send(Packet.SendMessage, ID, { Result: 0, ID: Result2.insertedId, Time: Time })
@@ -121,7 +122,7 @@ module.exports = (Client) =>
                     global.DB.collection('message').updateOne({ _id: global.MongoID(Result2.insertedId) }, { $set: { Delivery: Time } })
                 })
 
-                Misc.Analyze('Request', { ID: Packet.SendMessage, IP: Client._Address })
+                Misc.Analyze('Request', { ID: Packet.PersonMessageSend, IP: Client._Address })
             })
         })
     })
