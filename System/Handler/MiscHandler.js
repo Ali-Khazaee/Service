@@ -5,7 +5,7 @@ const Winston = require('winston')
 
 const Logger = Winston.createLogger(
     {
-        format: Winston.format.combine(Winston.format.printf(info => (info.message).replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
+        format: Winston.format.combine(Winston.format.printf((info) => info.message.replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
         transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
     })
 
@@ -16,7 +16,7 @@ module.exports.Analyze = (Tag, Message) =>
 
     // FixMe
 
-    Logger.log('error', `${Tag} ${Util.inspect(Message, false, null)}`)
+    Logger.log('error', `${Tag} - ${Util.inspect(Message, false, null)}`)
 }
 
 function IsUndefined(Value)
@@ -36,23 +36,21 @@ function IsUndefined(Value)
     if (typeof Value === 'object' && Value.constructor === Array && Value.length === 0)
         return true
 
-    if (typeof CallBack === 'function')
+    if (typeof Value === 'function')
         return false
 
     if (Value.toString === Object.prototype.toString)
     {
         switch (Value.toString())
         {
-            case '[object File]':
             case '[object Map]':
             case '[object Set]':
                 return Value.size === 0
-
             case '[object Object]':
             {
                 for (let Key in Value)
                 {
-                    if (Object.prototype.hasOwnProperty.call(Value, Key))
+                    if (Value.hasOwnProperty(Key))
                         return false
                 }
 

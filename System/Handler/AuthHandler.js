@@ -9,14 +9,15 @@ module.exports.AuthCreate = (Owner) =>
 {
     return new Promise((resolve) =>
     {
-        const Segment = Buffer.from(JSON.stringify({ Owner: Owner, Time: Misc.Time() })).toString('base64')
+        const Time = Misc.Time()
+        const Segment = Buffer.from(JSON.stringify({ Owner: Owner, Time: Time })).toString('base64')
         const Signer = Crypto.createSign('sha256')
 
         Signer.update(Misc.ReverseString(Segment))
 
         const Key = `${Segment}.${Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')}`
 
-        global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, Time: Misc.Time() }, (Error) =>
+        global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, Time: Time }, (Error) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -34,18 +35,19 @@ module.exports.AuthVerify = (Key) =>
 {
     return new Promise((resolve) =>
     {
-        const Data = Key.split('.')
+        const Param = Key.split('.')
 
-        if (Data.length !== 2)
+        if (Param.length !== 2)
         {
             resolve({ Result: 1 })
             return
         }
 
         let Verifier = Crypto.createVerify('sha256')
-        Verifier.update(Misc.ReverseString(Data[0]))
 
-        if (!Verifier.verify(Config.AUTH_PUBLIC_KEY, Data[1], 'base64'))
+        Verifier.update(Misc.ReverseString(Param[0]))
+
+        if (!Verifier.verify(Config.AUTH_PUBLIC_KEY, Param[1], 'base64'))
         {
             resolve({ Result: 2 })
             return
@@ -56,13 +58,13 @@ module.exports.AuthVerify = (Key) =>
             if (Misc.IsDefined(Error))
             {
                 Misc.Analyze('DBError', { Tag: 'AuthHandler-AuthVerify', Error: Error })
-                resolve({ Result: 3 })
+                resolve({ Result: -1 })
                 return
             }
 
             if (Misc.IsUndefined(Result[0]))
             {
-                resolve({ Result: 4 })
+                resolve({ Result: 3 })
                 return
             }
 

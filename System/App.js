@@ -11,12 +11,12 @@ const DBConfig = require('./Config/DataBase')
 const Misc = require('./Handler/MiscHandler')
 const Socket = require('./Handler/SocketHandler')
 
-process.on('uncaughtException', (Error) => Misc.Analyze('UncaughtException', { Error: Error }))
+process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
 
 MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}@${DBConfig.HOST}:${DBConfig.PORT}/${DBConfig.DATABASE}`,
     {
         reconnectTries: Number.MAX_VALUE,
-        reconnectInterval: 2000,
+        reconnectInterval: 2500,
         useNewUrlParser: true
     },
     (Error, DataBase) =>
@@ -34,9 +34,9 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
 
         const Server = Net.createServer()
 
-        Server.on('connection', (SocketClient) =>
+        Server.on('connection', (Sock) =>
         {
-            const Client = new Socket(SocketClient)
+            const Client = new Socket(Sock)
 
             Misc.Analyze('ClientConnected', { IP: Client._Address })
 

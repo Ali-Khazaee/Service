@@ -4,7 +4,7 @@ const FileSystem = require('fs')
 
 module.exports =
 {
-    SERVER_PORT: 37001,
+    SERVER_PORT: 37000,
     SERVER_STORAGE: './Storage/',
     SERVER_STORAGE_TEMP: './Storage/Temp/',
 

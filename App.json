@@ -10,6 +10,7 @@
         "out_file": "./Storage/Detail.log",
         "env":
         {
+          "SERVER_ID": 1,
           "NODE_ENV": "production"
         }
       }

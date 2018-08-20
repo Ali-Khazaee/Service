@@ -11,64 +11,64 @@ const HEADER_SIZE = 2 + 4 + 4
 
 module.exports = class Socket extends EventEmitter
 {
-    constructor(Socket)
+    constructor(Sock)
     {
         super()
 
-        this._Socket = Socket
+        this._Socket = Sock
         this._ID = Misc.RandomString(15)
-        this._Address = Socket.remoteAddress
+        this._Address = Sock.remoteAddress
 
         this._LastRequestID = -1
         this._LastRequestLength = -1
-        this._BufferStorage = Buffer.alloc(0)
+        this._Buffer = Buffer.alloc(0)
 
-        this._Socket.on('data', (CurrentBuffer) =>
+        this._Socket.on('data', (BufferCurrent) =>
         {
-            Misc.Analyze('ClientData', { IP: this._Address, Length: CurrentBuffer.length })
+            Misc.Analyze('ClientData', { IP: this._Address, Length: BufferCurrent.length })
 
-            let NewBuffer = Buffer.alloc(CurrentBuffer.length + this._BufferStorage.length)
+            let NewBuffer = Buffer.alloc(BufferCurrent.length + this._Buffer.length)
 
-            this._BufferStorage.copy(NewBuffer)
+            this._Buffer.copy(NewBuffer)
 
-            CurrentBuffer.copy(NewBuffer, this._BufferStorage.length)
+            BufferCurrent.copy(NewBuffer, this._Buffer.length)
 
-            this._BufferStorage = NewBuffer
+            this._Buffer = NewBuffer
 
             NewBuffer = null
 
-            if (this._BufferStorage.length <= HEADER_SIZE)
+            if (this._Buffer.length <= HEADER_SIZE)
                 return
 
             if (this._LastRequestLength === -1)
             {
-                this._LastRequestID = this._BufferStorage.readUInt32LE(6)
-                this._LastRequestLength = this._BufferStorage.readUInt32LE(2)
+                this._LastRequestID = this._Buffer.readUInt32LE(6)
+                this._LastRequestLength = this._Buffer.readUInt32LE(2)
             }
 
-            while (this._BufferStorage.length >= this._LastRequestLength)
+            while (this._Buffer.length >= this._LastRequestLength)
             {
                 let RequestBuffer = Buffer.alloc(this._LastRequestLength)
 
-                this._BufferStorage.copy(RequestBuffer)
+                this._Buffer.copy(RequestBuffer)
                 this.OnMessage(RequestBuffer)
 
-                NewBuffer = Buffer.alloc(this._BufferStorage.length - this._LastRequestLength)
+                NewBuffer = Buffer.alloc(this._Buffer.length - this._LastRequestLength)
 
-                this._BufferStorage.copy(NewBuffer, 0, this._LastRequestLength)
-                this._BufferStorage = NewBuffer
+                this._Buffer.copy(NewBuffer, 0, this._LastRequestLength)
+                this._Buffer = NewBuffer
                 this._LastRequestLength = -1
                 this._LastRequestID = -1
 
                 NewBuffer = null
 
-                if (this._BufferStorage.length <= HEADER_SIZE)
+                if (this._Buffer.length <= HEADER_SIZE)
                     return
 
                 if (this._LastRequestLength === -1)
                 {
-                    this._LastRequestID = this._BufferStorage.readUInt32LE(6)
-                    this._LastRequestLength = this._BufferStorage.readUInt32LE(2)
+                    this._LastRequestID = this._Buffer.readUInt32LE(6)
+                    this._LastRequestLength = this._Buffer.readUInt32LE(2)
                 }
             }
         })
@@ -94,7 +94,7 @@ module.exports = class Socket extends EventEmitter
         BufferMessage.writeInt16LE(Packet)
         BufferMessage.writeInt32LE(BufferMessage.length, 2)
         BufferMessage.writeInt32LE(ID, 6)
-        BufferMessage.write(Message, 10)
+        BufferMessage.write(Message, HEADER_SIZE)
 
         this._Socket.write(BufferMessage)
     }
@@ -134,17 +134,26 @@ module.exports = class Socket extends EventEmitter
                 return false
         }
 
-        return true
+        return Misc.IsDefined(this.__Owner)
     }
 
-    RateLimit(Name, Count, Time)
+    RateLimit(PacketID)
     {
         return new Promise((resolve) =>
         {
-            let CurrentTime = Misc.Time()
+            let Time = 1
+            let Name = 'Default'
+            let Count = 1000
+
+            switch (PacketID)
+            {
+                // FixMe Add RateLimit For All Packets
+            }
+
+            let TimeCurrent = Misc.Time()
             let Key = Name + '_' + Misc.IsDefined(this.__Owner) ? this.__Owner : this._Address
 
-            global.DB.collection('ratelimit').find({ $and: [ { Name: Name }, { Key: Key } ] }).limit(1).project({ Time: 1, Count: 1 }).toArray((Error, Result) =>
+            global.DB.collection('ratelimit').find({ $and: [ { Name: Name }, { Key: Key } ] }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
             {
                 if (Misc.IsDefined(Error))
                 {
@@ -154,13 +163,13 @@ module.exports = class Socket extends EventEmitter
 
                 if (Misc.IsUndefined(Result[0]))
                 {
-                    global.DB.collection('ratelimit').insertOne({ Name: Name, Key: Key, Count: 1, Expire: CurrentTime + Time })
+                    global.DB.collection('ratelimit').insertOne({ Name: Name, Key: Key, Count: 1, Expire: TimeCurrent + Time })
                     return resolve(true)
                 }
 
-                if (Result[0].Expire < CurrentTime)
+                if (Result[0].Expire < TimeCurrent)
                 {
-                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: CurrentTime + Time } })
+                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: TimeCurrent + Time } })
                     return resolve(true)
                 }
 

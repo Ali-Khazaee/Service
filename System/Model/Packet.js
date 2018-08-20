@@ -37,8 +37,8 @@ module.exports =
     GroupMessageList: 108,
     GroupMessageDelivery: 109,
     GroupMessageDelete: 110,
-    GroupMessageSticker: 111, // Don't Implemented
-    GroupMessageDocument: 112, // Don't Implemented
+    GroupMessageSticker: 111, // Don't Implement
+    GroupMessageDocument: 112, // Don't Implement
     GroupMessageUpdate: 113,
 
     Username: 300,

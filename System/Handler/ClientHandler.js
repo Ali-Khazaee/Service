@@ -20,42 +20,33 @@ module.exports.Remove = (ID) =>
 
 module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 {
-    return new Promise((resolve) =>
+    global.DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
     {
-        global.DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
+        if (Misc.IsDefined(Error))
         {
-            if (Misc.IsDefined(Error))
+            Misc.Analyze('DBError', { Tag: 'ClientHandler-Send', Error: Error })
+            return
+        }
+
+        if (Misc.IsUndefined(Result[0]))
+            return
+
+        for (let I = 0; I < Result.length; I++)
+        {
+            if (Result[I].ServerID === process.env.SERVER_ID && ClientList.has(Result[I].ID))
             {
-                Misc.Analyze('DBError', { Tag: 'ClientHandler-Send', Error: Error })
-                resolve()
-                return
-            }
+                ClientList.get(Result[I].ID).Send(PacketID, ID, Message)
 
-            if (Misc.IsUndefined(Result[0]))
+                if (typeof CallBack === 'function')
+                    CallBack()
+            }
+            else
             {
-                resolve()
-                return
+                // FixMe Send HTTP To Remote Server
+
+                if (typeof CallBack === 'function')
+                    CallBack()
             }
-
-            for (let I = 0; I < Result.length; I++)
-            {
-                if (Result[I].ServerID === process.env.SERVER_ID && ClientList.has(Result[I].ID))
-                {
-                    ClientList.get(Result[I].ID).Send(PacketID, ID, Message)
-
-                    if (typeof CallBack === 'function')
-                        CallBack()
-                }
-                else
-                {
-                    // FixMe Send HTTP To Remote Server
-
-                    if (typeof CallBack === 'function')
-                        CallBack()
-                }
-            }
-
-            resolve()
-        })
+        }
     })
 }
