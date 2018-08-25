@@ -29,9 +29,9 @@ module.exports =
 
     GroupCreate: 100, // Implemented
     GroupDelete: 101, // Implemented
-    GroupRename: 103,
+    GroupRename: 103, // Implemented
     GroupPicture: 104,
-    GroupMemberAdd: 105,
+    GroupMemberAdd: 105, // Implemented
     GroupMemberRemove: 106,
     GroupMessageSend: 107,
     GroupMessageList: 108,
@@ -40,8 +40,8 @@ module.exports =
     GroupMessageSticker: 111, // Don't Implement
     GroupMessageDocument: 112, // Don't Implement
     GroupMessageUpdate: 113,
-    GroupList: 114,
+    GroupList: 114, // Implemented
 
-    Username: 300,
-    Authentication: 301
+    Username: 300, // Implemented
+    Authentication: 301 // Implemented
 }
