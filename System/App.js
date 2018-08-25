@@ -4,6 +4,7 @@ process.env.SERVER_ID = 1
 process.env.NODE_ENV = 'production'
 
 const Net = require('net')
+const HTTP = require('http')
 const MongoDB = require('mongodb')
 
 const Config = require('./Config/Core')
@@ -12,6 +13,7 @@ const Misc = require('./Handler/MiscHandler')
 const Socket = require('./Handler/SocketHandler')
 
 process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
+process.on('unhandledRejection', (Error) => Misc.Analyze('AppUnhandledRejection', { Error: Error }))
 
 MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}@${DBConfig.HOST}:${DBConfig.PORT}/${DBConfig.DATABASE}`,
     {
@@ -58,6 +60,23 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
         Server.listen(Config.SERVER_PORT, '0.0.0.0', () =>
         {
             Misc.Analyze('ServerListen')
+        })
+
+        HTTP.createServer((Request, Response) =>
+        {
+            // FixMe
+            Response.end()
+        })
+
+        HTTP.listen(Config.HTTP_PORT, (Error) =>
+        {
+            if (Error)
+            {
+                Misc.Analyze('HTTPError', { Error: Error })
+                return
+            }
+
+            Misc.Analyze('HTTPListen')
         })
     })
 

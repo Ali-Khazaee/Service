@@ -3,44 +3,46 @@
 module.exports =
 {
     PhoneSignUp: 1, // Implemented
-    PhoneVerifySignUp: 2, // Implemented
+    PhoneSignUpVerify: 2, // Implemented
 
     PhoneSignIn: 3, // Implemented
-    PhoneVerifySignIn: 4, // Implemented
+    PhoneSignInVerify: 4, // Implemented
 
-    EmailSignUp: 5,
-    EmailVerifySignUp: 6,
-    EmailRecovery: 7,
-    EmailSignIn: 8,
+    EmailSignUp: 5, //
+    EmailSignUpVerify: 6, //
 
-    GoogleSignIn: 9,
+    EmailSignIn: 7, //
+    EmailSignInVerify: 8, //
 
-    UsernameSignIn: 10,
+    EmailRecovery: 9, //
+    EmailRecoveryVerify: 10, //
 
-    PasswordChange: 11,
+    GoogleSignIn: 11, //
 
-    PersonMessageSend: 200, // Implemented
-    PersonMessageList: 201, // Implemented
-    PersonMessageDelivery: 202,
-    PersonMessageSticker: 203, // Don't Implement
-    PersonMessageDelete: 204,
-    PersonMessageDocument: 205, // Don't Implement
-    PersonMessageUpdate: 206,
+    UsernameSignIn: 12, //
 
-    GroupCreate: 100, // Implemented
-    GroupDelete: 101, // Implemented
+    Password: 13, //
+
+    PersonList: 200, //
+    PersonMessageSend: 201, // Implemented
+    PersonMessageList: 202, // Implemented
+    PersonMessageInfo: 203, //
+    PersonMessageClear: 204, //
+    PersonMessageDelete: 205, //
+    PersonMessageDelivery: 206, //
+
+    GroupList: 100, // Implemented
+    GroupCreate: 101, // Implemented
+    GroupDelete: 102, // Implemented
     GroupRename: 103, // Implemented
-    GroupPicture: 104,
+    GroupPicture: 104, // Don't Implement
     GroupMemberAdd: 105, // Implemented
-    GroupMemberRemove: 106,
+    GroupMemberRemove: 106, // Implemented
     GroupMessageSend: 107,
     GroupMessageList: 108,
-    GroupMessageDelivery: 109,
+    GroupMessageInfo: 109,
     GroupMessageDelete: 110,
-    GroupMessageSticker: 111, // Don't Implement
-    GroupMessageDocument: 112, // Don't Implement
-    GroupMessageUpdate: 113,
-    GroupList: 114, // Implemented
+    GroupMessageDelivery: 111,
 
     Username: 300, // Implemented
     Authentication: 301 // Implemented

@@ -264,7 +264,7 @@ module.exports = (Client) =>
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Who ( Undefined, Invalid )
      * Result: 3 >> Who Doesn't Exist
-     * Result: 4 >> Group Doesn't Exist | You are not Owner
+     * Result: 4 >> Group Doesn't Exist | No Rights
      * Result: 5 >> Who Already In Group
      */
     Client.on(Packet.GroupMemberAdd, (ID, Message) =>
@@ -320,6 +320,65 @@ module.exports = (Client) =>
 
                         Misc.Analyze('Request', { ID: Packet.GroupMemberAdd, IP: Client._Address })
                     })
+                })
+            })
+        })
+    })
+
+    /**
+     * @Packet GroupMemberRemove
+     *
+     * @Description Hazv Kardan e Ozv Az Goroh
+     *
+     * @Param {string} ID
+     * @Param {string} Who
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     * Result: 2 >> Who ( Undefined, Invalid )
+     * Result: 3 >> Who Doesn't Exist
+     * Result: 4 >> Group Doesn't Exist | No Rights
+     */
+    Client.on(Packet.GroupMemberRemove, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupMemberRemove, ID, { Result: 1 })
+
+        if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
+            return Client.Send(Packet.GroupMemberRemove, ID, { Result: 1 })
+
+        global.DB.collection('account').find({ _id: global.MongoID(Message.Who) }).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error })
+                return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.GroupMemberAdd, ID, { Result: 3 })
+
+            global.DB.collection('group').find({ $and: [ { Owner: global.MongoID(Client.__Owner) }, { _id: global.MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error2 })
+                    return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
+                }
+
+                if (Misc.IsUndefined(Result2[0]))
+                    return Client.Send(Packet.GroupMemberRemove, ID, { Result: 4 })
+
+                global.DB.collection('group_member').deleteOne({ $and: [ { Group: global.MongoID(Message.ID) }, { Member: global.MongoID(Message.Who) } ] }).toArray((Error3) =>
+                {
+                    if (Misc.IsDefined(Error3))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error3 })
+                        return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
+                    }
+
+                    Client.Send(Packet.GroupMemberRemove, ID, { Result: 0 })
+
+                    Misc.Analyze('Request', { ID: Packet.GroupMemberRemove, IP: Client._Address })
                 })
             })
         })
