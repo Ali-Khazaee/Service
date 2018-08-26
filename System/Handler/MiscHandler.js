@@ -2,6 +2,7 @@
 
 const Util = require('util')
 const Winston = require('winston')
+const Config = require('../Config/Core')
 
 const Logger = Winston.createLogger(
     {
@@ -149,4 +150,37 @@ module.exports.IsInvalidID = (ID) =>
         Valid = /^[0-9a-fA-F]+$/.test(ID)
 
     return !Valid
+}
+
+module.exports.SendEmail = (Receiver, Subject, Content) =>
+{
+    const Mailer = require('nodemailer')
+
+    let Transporter = Mailer.createTransport(
+        {
+            host: Config.EMAIL_HOST,
+            port: Config.EMAIL_PORT,
+            secure: Config.EMAIL_SECURE,
+            auth:
+            {
+                user: Config.EMAIL_USERNAME,
+                pass: Config.EMAIL_PASSWORD
+            }
+        })
+
+    let Options =
+        {
+            from: `"${Config.EMAIL_SENDER_NAME}" <${Config.EMAIL_FROM}>`,
+            to: Receiver,
+            subject: Subject,
+            html: Content
+        }
+
+    Transporter.sendMail(Options, (Error, Info) =>
+    {
+        if (Error)
+            return this.Analyze('MailError', { Error: Error })
+
+        this.Analyze('MailSuccess', { Message: Info.messageId })
+    })
 }

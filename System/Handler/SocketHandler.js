@@ -108,10 +108,17 @@ module.exports = class Socket extends EventEmitter
 
         this.RateLimit(PacketID).then((Result) =>
         {
-            if (Result)
-                this.emit(PacketID, BufferMessage.readUInt32LE(6), BufferMessage.toString('utf8', HEADER_SIZE))
-            else
-                Misc.Analyze('RateLimit', { PacketID: PacketID, IP: this._Address, Owner: this.__Owner })
+            try
+            {
+                if (Result)
+                    this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)))
+                else
+                    Misc.Analyze('RateLimit', { PacketID: PacketID, IP: this._Address, Owner: this.__Owner })
+            }
+            catch (Exception)
+            {
+                Misc.Analyze('OnMessage', { Error: Exception })
+            }
         })
     }
 

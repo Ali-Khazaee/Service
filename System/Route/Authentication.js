@@ -5,6 +5,7 @@ const Packet = require('../Model/Packet')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
 const ClientManager = require('../Handler/ClientHandler')
+const Language = require('../Handler/LanguageHandler')
 const DataType = require('../Model/DataType').Authentication
 
 module.exports = (Client) =>
@@ -97,7 +98,7 @@ module.exports = (Client) =>
     })
 
     /**
-     * @PacketID PhoneVerifySignUp
+     * @PacketID PhoneSignUpVerify
      *
      * @Description Taeedie Sabte Nam Az Tarighe Phone Marhale Dovom
      *
@@ -113,76 +114,75 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.on(Packet.PhoneVerifySignUp, (ID, Message) =>
+    Client.on(Packet.PhoneSignUpVerify, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || Message.Code.length !== 5)
-            return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 1 })
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+            return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
-            return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 2 })
+            return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 2 })
 
         global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.PhoneSignUp }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 0, Username: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignUp, Error: Error })
-                return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.PhoneSignUpVerify, Error: Error })
+                return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 3 })
+                return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 3 })
 
             global.DB.collection('account').find({ Number: Message.Number }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignUp, Error: Error2 })
-                    return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
+                    Misc.Analyze('DBError', { Tag: Packet.PhoneSignUpVerify, Error: Error2 })
+                    return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -1 })
                 }
 
                 if (Misc.IsDefined(Result2[0]))
-                    return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 4 })
+                    return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 4 })
 
                 global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray((Error3, Result3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignUp, Error: Error3 })
-                        return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
+                        Misc.Analyze('DBError', { Tag: Packet.PhoneSignUpVerify, Error: Error3 })
+                        return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -1 })
                     }
 
                     if (Misc.IsDefined(Result3[0]))
-                        return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 5 })
+                        return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 5 })
 
                     global.DB.collection('account').insertOne({ Username: Message.Username, Number: Message.Number, Time: Misc.Time() }, (Error4, Result4) =>
                     {
                         if (Misc.IsDefined(Error4))
                         {
-                            Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignUp, Error: Error4 })
-                            return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
+                            Misc.Analyze('DBError', { Tag: Packet.PhoneSignUpVerify, Error: Error4 })
+                            return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -1 })
                         }
 
                         Auth.AuthCreate(Result4.insertedId).then((Result5) =>
                         {
                             if (Result5.Result !== 0)
-                                return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -3 })
+                                return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -3 })
 
                             global.DB.collection('key').insertOne({ Owner: Result4.insertedId, Key: Result5.Key, Time: Misc.Time() }, (Error5) =>
                             {
                                 if (Misc.IsDefined(Error5))
                                 {
-                                    Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignUp, Error: Error5 })
-                                    return Client.Send(Packet.PhoneVerifySignUp, ID, { Result: -1 })
+                                    Misc.Analyze('DBError', { Tag: Packet.PhoneSignUpVerify, Error: Error5 })
+                                    return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -1 })
                                 }
 
                                 if (Misc.IsUndefined(Client.__Owner))
                                 {
                                     Client.__Owner = Result4.insertedId
-
                                     ClientManager.Add(Client)
                                 }
 
-                                Client.Send(Packet.PhoneVerifySignUp, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
+                                Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
                             })
                         })
                     })
@@ -237,7 +237,7 @@ module.exports = (Client) =>
     })
 
     /**
-     * @PacketID PhoneVerifySignIn
+     * @PacketID PhoneSignInVerify
      *
      * @Description Taeedie Vorod Az Tarighe Phone Marhale Dovom
      *
@@ -251,46 +251,224 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.on(Packet.PhoneVerifySignIn, (ID, Message) =>
+    Client.on(Packet.PhoneSignInVerify, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || Message.Code.length !== 5)
-            return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 1 })
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+            return Client.Send(Packet.PhoneSignInVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
-            return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 2 })
+            return Client.Send(Packet.PhoneSignInVerify, ID, { Result: 2 })
 
         global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.PhoneSignIn }, { Time: { $gt: Misc.Time() - 1800 } }, { Number: Message.Number } ] }).limit(1).project({ _id: 1, Owner: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignIn, Error: Error })
-                return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.PhoneSignInVerify, Error: Error })
+                return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 3 })
+                return Client.Send(Packet.PhoneSignInVerify, ID, { Result: 3 })
 
             Auth.AuthCreate(Result[0].Owner).then((Result2) =>
             {
                 if (Result2.Result !== 0)
-                    return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -3 })
+                    return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -3 })
 
                 global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Misc.Time() }, (Error2) =>
                 {
                     if (Misc.IsDefined(Error2))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.PhoneVerifySignIn, Error: Error2 })
-                        return Client.Send(Packet.PhoneVerifySignIn, ID, { Result: -1 })
+                        Misc.Analyze('DBError', { Tag: Packet.PhoneSignInVerify, Error: Error2 })
+                        return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -1 })
                     }
 
                     if (Misc.IsUndefined(Client.__Owner))
                     {
                         Client.__Owner = Result[0].Owner
-
                         ClientManager.Add(Client)
                     }
 
-                    Client.Send(Packet.PhoneVerifySignIn, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
+                    Client.Send(Packet.PhoneSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
+                })
+            })
+        })
+    })
+
+    /**
+     * @PacketID EmailSignUp
+     *
+     * @Description Sabte Nam Az Tarighe Email Marhale Aval
+     *
+     * @Param {string} Email
+     * @Param {string} Country
+     * @Param {string} Username
+     *
+     * Support Countries: 'IR'
+     *
+     * Result: 1 >> Country Undefined
+     * Result: 2 >> Email ( Undefined, NE: Regex )
+     * Result: 3 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
+     * Result: 4 >> Country ( Not Allowed )
+     * Result: 5 >> Username Already Used
+     * Result: 6 >> Email Already Used
+     */
+    Client.on(Packet.EmailSignUp, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.Country))
+            return Client.Send(Packet.EmailSignUp, ID, { Result: 1 })
+
+        if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
+            return Client.Send(Packet.EmailSignUp, ID, { Result: 2 })
+
+        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.test(Message.Username))
+            return Client.Send(Packet.EmailSignUp, ID, { Result: 3 })
+
+        let CountryIsInvalid = true
+
+        switch (Message.Country.toUpperCase())
+        {
+            case 'IR':
+                CountryIsInvalid = false
+                break
+        }
+
+        if (CountryIsInvalid)
+            return Client.Send(Packet.EmailSignUp, ID, { Result: 4 })
+
+        Message.Username = Message.Username.toLowerCase()
+
+        global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.EmailSignUp, Error: Error })
+                return Client.Send(Packet.EmailSignUp, ID, { Result: -1 })
+            }
+
+            if (Misc.IsDefined(Result[0]))
+                return Client.Send(Packet.EmailSignUp, ID, { Result: 5 })
+
+            global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.EmailSignUp, Error: Error2 })
+                    return Client.Send(Packet.EmailSignUp, ID, { Result: -1 })
+                }
+
+                if (Misc.IsDefined(Result2[0]))
+                    return Client.Send(Packet.EmailSignUp, ID, { Result: 6 })
+
+                let Code = 55555 // FixMe Misc.RandomNumber(5)
+
+                global.DB.collection('register').insertOne({ Type: DataType.EmailSignUp, Email: Message.Email, Username: Message.Username, Code: Code, Time: Misc.Time() }, (Error3) =>
+                {
+                    if (Misc.IsDefined(Error3))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.EmailSignUp, Error: Error3 })
+                        return Client.Send(Packet.EmailSignUp, ID, { Result: -1 })
+                    }
+
+                    Misc.SendEmail(Message.Email, Language.Lang(Message.Country, Language.EmailSignUpSubject), Language.Lang(Message.Country, Language.EmailSignUpMessage, Code))
+
+                    Client.Send(Packet.EmailSignUp, ID, { Result: 0 })
+
+                    Misc.Analyze('Request', { ID: Packet.EmailSignUp, IP: Client._Address })
+                })
+            })
+        })
+    })
+
+    /**
+     * @PacketID EmailSignUpVerify
+     *
+     * @Description Taeedie Sabte Nam Az Tarighe Email Marhale Dovom
+     *
+     * @Param {string} Email
+     * @Param {string} Code
+     *
+     * Result: 1 >> Code ( Undefined, Invalid )
+     * Result: 2 >> Email == Undefined
+     * Result: 3 >> Request Invalid
+     * Result: 4 >> Email Already Used
+     * Result: 5 >> Username Already Used
+     *
+     * @Return ID: Account ID Bayad To Client Save She
+     *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
+     */
+    Client.on(Packet.EmailSignUpVerify, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+            return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 1 })
+
+        if (Misc.IsUndefined(Message.Email))
+            return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 2 })
+
+        global.DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.EmailSignUp }, { Time: { $gt: Misc.Time() - 1800 } }, { Email: Message.Email } ] }).limit(1).project({ _id: 0, Username: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.EmailSignUpVerify, Error: Error })
+                return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 3 })
+
+            global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.EmailSignUpVerify, Error: Error2 })
+                    return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -1 })
+                }
+
+                if (Misc.IsDefined(Result2[0]))
+                    return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 4 })
+
+                global.DB.collection('account').find({ Username: Result[0].Username }).limit(1).project({ _id: 1 }).toArray((Error3, Result3) =>
+                {
+                    if (Misc.IsDefined(Error3))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.EmailSignUpVerify, Error: Error3 })
+                        return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -1 })
+                    }
+
+                    if (Misc.IsDefined(Result3[0]))
+                        return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 5 })
+
+                    global.DB.collection('account').insertOne({ Username: Message.Username, Email: Message.Email, Time: Misc.Time() }, (Error4, Result4) =>
+                    {
+                        if (Misc.IsDefined(Error4))
+                        {
+                            Misc.Analyze('DBError', { Tag: Packet.EmailSignUpVerify, Error: Error4 })
+                            return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -1 })
+                        }
+
+                        Auth.AuthCreate(Result4.insertedId).then((Result5) =>
+                        {
+                            if (Result5.Result !== 0)
+                                return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -3 })
+
+                            global.DB.collection('key').insertOne({ Owner: Result4.insertedId, Key: Result5.Key, Time: Misc.Time() }, (Error5) =>
+                            {
+                                if (Misc.IsDefined(Error5))
+                                {
+                                    Misc.Analyze('DBError', { Tag: Packet.EmailSignUpVerify, Error: Error5 })
+                                    return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -1 })
+                                }
+
+                                if (Misc.IsUndefined(Client.__Owner))
+                                {
+                                    Client.__Owner = Result4.insertedId
+                                    ClientManager.Add(Client)
+                                }
+
+                                Client.Send(Packet.EmailSignUpVerify, ID, { Result: 0, ID: Result4.insertedId, Key: Result5.Key })
+                            })
+                        })
+                    })
                 })
             })
         })

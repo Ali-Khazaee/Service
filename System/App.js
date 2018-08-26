@@ -4,7 +4,7 @@ process.env.SERVER_ID = 1
 process.env.NODE_ENV = 'production'
 
 const Net = require('net')
-const HTTP = require('http')
+// const HTTP = require('http')
 const MongoDB = require('mongodb')
 
 const Config = require('./Config/Core')
@@ -62,6 +62,7 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
             Misc.Analyze('ServerListen')
         })
 
+        /*
         HTTP.createServer((Request, Response) =>
         {
             // FixMe
@@ -78,6 +79,7 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
 
             Misc.Analyze('HTTPListen')
         })
+        */
     })
 
 /*

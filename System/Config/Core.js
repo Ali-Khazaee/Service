@@ -13,11 +13,12 @@ module.exports =
     AUTH_PUBLIC_KEY: FileSystem.readFileSync('./Storage/PublicKey.pem'),
 
     EMAIL_HOST: 'smtp.gmail.com',
-    EMAIL_SECURE: true,
-    EMAIL_FROM: 'dev.khazaee@gmail.com',
-    EMAIL_USERNAME: 'dev.khazaee@gmail.com',
-    EMAIL_PASSWORD: 'Dev123mail',
-    EMAIL_PORT: 465,
+    EMAIL_SECURE: false,
+    EMAIL_FROM: 'no-reply@channelapp.ir',
+    EMAIL_SENDER_NAME: 'Channel App',
+    EMAIL_USERNAME: 'mrx44278@gmail.com',
+    EMAIL_PASSWORD: 'pohdiaahxoslhbhf',
+    EMAIL_PORT: 587,
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
     PATTERN_USERNAME: /^(?![^a-zA-Z])(?!.*([_.])\1)[\w.]*[a-zA-Z]$/,
