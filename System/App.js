@@ -1,21 +1,20 @@
 'use strict'
 
-process.env.SERVER_ID = 1
-process.env.NODE_ENV = 'production'
-
+const DotEnv = require('dotenv')
 const Net = require('net')
 const HTTP = require('http')
 const MongoDB = require('mongodb')
 
-const Config = require('./Config/Core')
-const DBConfig = require('./Config/DataBase')
 const Misc = require('./Handler/MiscHandler')
 const Socket = require('./Handler/SocketHandler')
 
 process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
 process.on('unhandledRejection', (Error) => Misc.Analyze('AppUnhandledRejection', { Error: Error }))
 
-MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}@${DBConfig.HOST}:${DBConfig.PORT}/${DBConfig.DATABASE}`,
+DotEnv.config()
+global.Config = require('./Config')
+
+MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.DataBase.PASSWORD}@${Config.DataBase.HOST}:${Config.DataBase.PORT}/${Config.DataBase.NAME}`,
 {
     reconnectTries: Number.MAX_VALUE,
     reconnectInterval: 2500,
@@ -32,7 +31,7 @@ MongoDB.MongoClient.connect(`mongodb://${DBConfig.USERNAME}:${DBConfig.PASSWORD}
     Misc.Analyze('DBConnected')
 
     global.MongoID = MongoDB.ObjectID
-    global.DB = DataBase.db(DBConfig.DataBase)
+    global.DB = DataBase.db(Config.DataBase.NAME)
 
     const Server = Net.createServer()
 

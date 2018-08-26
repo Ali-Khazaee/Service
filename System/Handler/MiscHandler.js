@@ -2,7 +2,6 @@
 
 const Util = require('util')
 const Winston = require('winston')
-const Config = require('../Config/Core')
 
 const Logger = Winston.createLogger(
 {
@@ -152,19 +151,19 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
 
     let Transporter = Mailer.createTransport(
     {
-        host: Config.EMAIL_HOST,
-        port: Config.EMAIL_PORT,
-        secure: Config.EMAIL_SECURE,
+        host: Config.Core.EMAIL_HOST,
+        port: Config.Core.EMAIL_PORT,
+        secure: Config.Core.EMAIL_SECURE,
         auth:
         {
-            user: Config.EMAIL_USERNAME,
-            pass: Config.EMAIL_PASSWORD
+            user: Config.Core.EMAIL_USERNAME,
+            pass: Config.Core.EMAIL_PASSWORD
         }
     })
 
     let Options =
     {
-        from: `"${Config.EMAIL_SENDER}" <${Config.EMAIL_FROM}>`,
+        from: `"${Config.Core.EMAIL_SENDER}" <${Config.Core.EMAIL_FROM}>`,
         to: Receiver,
         subject: Subject,
         html: Content

@@ -1,6 +1,5 @@
 'use strict'
 
-const Config = require('../Config/Core')
 const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
 const ClientManager = require('../Handler/ClientHandler')
@@ -19,7 +18,7 @@ module.exports = (Client) =>
      */
     Client.on(Packet.Username, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.test(Message.Username))
+        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.Core.PATTERN_USERNAME.test(Message.Username))
             return Client.Send(Packet.Username, ID, { Result: 1 })
 
         Message.Username = Message.Username.toLowerCase()

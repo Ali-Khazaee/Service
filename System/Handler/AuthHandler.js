@@ -3,7 +3,6 @@
 const Crypto = require('crypto')
 
 const Misc = require('./MiscHandler')
-const Config = require('../Config/Core')
 
 module.exports.AuthCreate = (Owner) =>
 {
@@ -15,7 +14,7 @@ module.exports.AuthCreate = (Owner) =>
 
         Signer.update(Misc.ReverseString(Segment))
 
-        const Key = `${Segment}.${Signer.sign(Config.AUTH_PRIVATE_KEY, 'base64')}`
+        const Key = `${Segment}.${Signer.sign(Config.Core.AUTH_PRIVATE_KEY, 'base64')}`
 
         global.DB.collection('token').insertOne({ Owner: Owner, Key: Key, Time: Time }, (Error) =>
         {
@@ -47,7 +46,7 @@ module.exports.AuthVerify = (Key) =>
 
         Verifier.update(Misc.ReverseString(Param[0]))
 
-        if (!Verifier.verify(Config.AUTH_PUBLIC_KEY, Param[1], 'base64'))
+        if (!Verifier.verify(Config.Core.AUTH_PUBLIC_KEY, Param[1], 'base64'))
         {
             resolve({ Result: 2 })
             return

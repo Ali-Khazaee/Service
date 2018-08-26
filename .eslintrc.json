@@ -1,4 +1,5 @@
 {
+    "globals": { "Config": true },
     "extends": "standard",
     "rules":
     {

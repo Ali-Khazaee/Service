@@ -6,20 +6,19 @@ const FileSystem = require('fs')
 const Request = require('request')
 
 const Misc = require('../Handler/MiscHandler')
-const UploadConfig = require('../Config/Upload')
 
 const ServerList =
 [
-    { ID: 0, URL: UploadConfig.UPLOAD_SERVER_1 },
-    { ID: 1, URL: UploadConfig.UPLOAD_SERVER_2 }
+    { ID: 0, URL: Config.Upload.UPLOAD_SERVER_1 },
+    { ID: 1, URL: Config.Upload.UPLOAD_SERVER_2 }
 ]
 
 function ServerToken(ID)
 {
     switch (ID)
     {
-        case 0: return UploadConfig.UPLOAD_SERVER_1_TOKEN
-        case 1: return UploadConfig.UPLOAD_SERVER_2_TOKEN
+        case 0: return Config.Upload.UPLOAD_SERVER_1_TOKEN
+        case 1: return Config.Upload.UPLOAD_SERVER_2_TOKEN
     }
 
     Misc.Analyze('UploadHandler-ServerToken', { ID: ID })

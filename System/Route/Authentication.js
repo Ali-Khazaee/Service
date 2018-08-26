@@ -1,6 +1,5 @@
 'use strict'
 
-const Config = require('../Config/Core')
 const Packet = require('../Model/Packet')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
@@ -36,7 +35,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Number))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 2 })
 
-        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.text(Message.Username))
+        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.Core.PATTERN_USERNAME.text(Message.Username))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 3 })
 
         let CountryPattern
@@ -45,7 +44,7 @@ module.exports = (Client) =>
         switch (Message.Country.toUpperCase())
         {
             case 'IR':
-                CountryPattern = Config.PATTERN_IR_PHONE
+                CountryPattern = Config.Core.PATTERN_IR_PHONE
                 CountryIsInvalid = false
                 break
         }
@@ -318,10 +317,10 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Country))
             return Client.Send(Packet.EmailSignUp, ID, { Result: 1 })
 
-        if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
+        if (Misc.IsUndefined(Message.Email) || !Config.Core.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignUp, ID, { Result: 2 })
 
-        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.test(Message.Username))
+        if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.Core.PATTERN_USERNAME.test(Message.Username))
             return Client.Send(Packet.EmailSignUp, ID, { Result: 3 })
 
         let CountryIsInvalid = true
