@@ -4,10 +4,10 @@ const LanguageScope =
 {
     IR:
     [
-        // NumberSignUpMessage: 0
+        // PhoneSignUpMessage: 0
         (Args) => `کد تاییدیه شما در برنامه کانال ${Args} می باشد \n\n ChannelApp.IR`,
 
-        // NumberSignInMessage: 1
+        // PhoneSignInMessage: 1
         (Args) => `کد ورود شما در برنامه کانال ${Args} می باشد \n\n ChannelApp.IR`,
 
         // EmailSignUpSubject: 2
@@ -24,10 +24,10 @@ const LanguageScope =
     ],
     EN:
     [
-        // NumberSignUpMessage: 0
+        // PhoneSignUpMessage: 0
         (Args) => `${Args} is your Channel registration code \n\n ChannelApp.IR`,
 
-        // NumberSignInMessage: 1
+        // PhoneSignInMessage: 1
         (Args) => `${Args} is your Channel login code \n\n ChannelApp.IR`,
 
         // EmailSignUpSubject: 2
@@ -46,8 +46,8 @@ const LanguageScope =
 
 module.exports =
 {
-    NumberSignUpMessage: 0,
-    NumberSignInMessage: 1,
+    PhoneSignUpMessage: 0,
+    PhoneSignInMessage: 1,
 
     EmailSignUpSubject: 2,
     EmailSignUpMessage: 3,

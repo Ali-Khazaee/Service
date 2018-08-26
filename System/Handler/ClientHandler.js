@@ -33,12 +33,15 @@ module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 
         for (let I = 0; I < Result.length; I++)
         {
-            if (Result[I].ServerID === process.env.SERVER_ID && ClientList.has(Result[I].ID))
+            if (Result[I].ServerID === process.env.SERVER_ID)
             {
-                ClientList.get(Result[I].ID).Send(PacketID, ID, Message)
+                if (ClientList.has(Result[I].ID))
+                {
+                    ClientList.get(Result[I].ID).Send(PacketID, ID, Message)
 
-                if (typeof CallBack === 'function')
-                    CallBack()
+                    if (typeof CallBack === 'function')
+                        CallBack()
+                }
             }
             else
             {

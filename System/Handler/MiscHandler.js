@@ -5,22 +5,22 @@ const Winston = require('winston')
 const Config = require('../Config/Core')
 
 const Logger = Winston.createLogger(
-    {
-        format: Winston.format.combine(Winston.format.printf((info) => info.message.replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
-        transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
-    })
+{
+    format: Winston.format.combine(Winston.format.printf((info) => info.message.replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
+    transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
+})
 
 module.exports.Analyze = (Tag, Message) =>
 {
     Message = Message || { }
-    Message.CreatedTime = Time()
+    Message.CreatedTime = this.Time()
 
-    // FixMe
+    // FixMe Insert Me In DB Async And Low Priority
 
     Logger.log('error', `${Tag} - ${Util.inspect(Message, false, null)}`)
 }
 
-function IsUndefined(Value)
+module.exports.IsUndefined = (Value) =>
 {
     if (typeof Value === 'undefined' || Value === undefined || Value == null || Value === null)
         return true
@@ -63,11 +63,9 @@ function IsUndefined(Value)
     return isNaN(Value)
 }
 
-module.exports.IsUndefined = IsUndefined
-
 module.exports.IsDefined = (Value) =>
 {
-    return !IsUndefined(Value)
+    return !this.IsUndefined(Value)
 }
 
 module.exports.TimeMili = () =>
@@ -75,12 +73,10 @@ module.exports.TimeMili = () =>
     return Math.floor(Date.now())
 }
 
-function Time()
+module.exports.Time = () =>
 {
     return Math.floor(Date.now() / 1000)
 }
-
-module.exports.Time = Time
 
 module.exports.ReverseString = (Value) =>
 {
@@ -92,7 +88,7 @@ module.exports.ReverseString = (Value) =>
     return NewValue
 }
 
-function IsInvalidJSON(Message)
+module.exports.IsInvalidJSON = (Message) =>
 {
     if (typeof Message === 'object')
         return false
@@ -109,11 +105,9 @@ function IsInvalidJSON(Message)
     return false
 }
 
-module.exports.IsInvalidJSON = IsInvalidJSON
-
 module.exports.IsValidJSON = (Message) =>
 {
-    return !IsInvalidJSON(Message)
+    return !this.IsInvalidJSON(Message)
 }
 
 module.exports.RandomString = (Count) =>
@@ -157,30 +151,33 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
     const Mailer = require('nodemailer')
 
     let Transporter = Mailer.createTransport(
+    {
+        host: Config.EMAIL_HOST,
+        port: Config.EMAIL_PORT,
+        secure: Config.EMAIL_SECURE,
+        auth:
         {
-            host: Config.EMAIL_HOST,
-            port: Config.EMAIL_PORT,
-            secure: Config.EMAIL_SECURE,
-            auth:
-            {
-                user: Config.EMAIL_USERNAME,
-                pass: Config.EMAIL_PASSWORD
-            }
-        })
+            user: Config.EMAIL_USERNAME,
+            pass: Config.EMAIL_PASSWORD
+        }
+    })
 
     let Options =
-        {
-            from: `"${Config.EMAIL_SENDER_NAME}" <${Config.EMAIL_FROM}>`,
-            to: Receiver,
-            subject: Subject,
-            html: Content
-        }
+    {
+        from: `"${Config.EMAIL_SENDER}" <${Config.EMAIL_FROM}>`,
+        to: Receiver,
+        subject: Subject,
+        html: Content
+    }
 
     Transporter.sendMail(Options, (Error, Info) =>
     {
         if (Error)
-            return this.Analyze('MailError', { Error: Error })
+        {
+            this.Analyze('MailError', { Error: Error })
+            return
+        }
 
-        this.Analyze('MailSuccess', { Message: Info.messageId })
+        this.Analyze('MailSuccess', { Info: Info })
     })
 }

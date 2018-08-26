@@ -127,14 +127,17 @@ module.exports = class Socket extends EventEmitter
         switch (PacketID)
         {
             case Packet.PhoneSignUp:
-            case Packet.PhoneVerifySignUp:
+            case Packet.PhoneSignUpVerify:
             case Packet.PhoneSignIn:
-            case Packet.PhoneVerifySignIn:
+            case Packet.PhoneSignInVerify:
             case Packet.EmailSignUp:
-            case Packet.EmailVerifySignUp:
-            case Packet.EmailRecovery:
+            case Packet.EmailSignUpVerify:
             case Packet.EmailSignIn:
+            case Packet.EmailSignInVerify:
+            case Packet.EmailRecovery:
+            case Packet.EmailRecoveryVerify:
             case Packet.GoogleSignIn:
+            case Packet.GoogleSignInVerify:
             case Packet.UsernameSignIn:
             case Packet.Username:
             case Packet.Authentication:

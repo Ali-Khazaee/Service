@@ -18,18 +18,11 @@ module.exports =
     EmailRecoveryVerify: 10, //
 
     GoogleSignIn: 11, //
+    GoogleSignInVerify: 12, //
 
-    UsernameSignIn: 12, //
+    UsernameSignIn: 13, //
 
-    Password: 13, //
-
-    PersonList: 200, //
-    PersonMessageSend: 201, // Implemented
-    PersonMessageList: 202, // Implemented
-    PersonMessageInfo: 203, //
-    PersonMessageClear: 204, //
-    PersonMessageDelete: 205, //
-    PersonMessageDelivery: 206, //
+    Password: 14, //
 
     GroupList: 100, // Implemented
     GroupCreate: 101, // Implemented
@@ -44,6 +37,14 @@ module.exports =
     GroupMessageDelete: 110,
     GroupMessageDelivery: 111,
 
-    Username: 300, // Implemented
-    Authentication: 301 // Implemented
+    PersonList: 200, //
+    PersonMessageSend: 201, // Implemented
+    PersonMessageList: 202, // Implemented
+    PersonMessageInfo: 203, //
+    PersonMessageClear: 204, //
+    PersonMessageDelete: 205, //
+    PersonMessageDelivery: 206, //
+
+    Username: 400, // Implemented
+    Authentication: 401 // Implemented
 }

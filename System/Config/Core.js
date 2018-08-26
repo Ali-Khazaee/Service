@@ -4,7 +4,7 @@ const FileSystem = require('fs')
 
 module.exports =
 {
-    HTTP_PORT: 36000,
+    HTTP_PORT: 37001,
     SERVER_PORT: 37000,
     SERVER_STORAGE: './Storage/',
     SERVER_STORAGE_TEMP: './Storage/Temp/',
@@ -15,7 +15,7 @@ module.exports =
     EMAIL_HOST: 'smtp.gmail.com',
     EMAIL_SECURE: false,
     EMAIL_FROM: 'no-reply@channelapp.ir',
-    EMAIL_SENDER_NAME: 'Channel App',
+    EMAIL_SENDER: 'Channel App',
     EMAIL_USERNAME: 'mrx44278@gmail.com',
     EMAIL_PASSWORD: 'pohdiaahxoslhbhf',
     EMAIL_PORT: 587,

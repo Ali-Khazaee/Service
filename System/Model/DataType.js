@@ -18,8 +18,6 @@ module.exports =
         VOICE: 3,
         FILE: 4,
         GIF: 5,
-        STICKER: 6,
-        VOTE: 7,
-        QUERY: 8
+        STICKER: 6
     }
 }

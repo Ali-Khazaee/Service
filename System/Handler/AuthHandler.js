@@ -58,13 +58,13 @@ module.exports.AuthVerify = (Key) =>
             if (Misc.IsDefined(Error))
             {
                 Misc.Analyze('DBError', { Tag: 'AuthHandler-AuthVerify', Error: Error })
-                resolve({ Result: -1 })
+                resolve({ Result: 3 })
                 return
             }
 
             if (Misc.IsUndefined(Result[0]))
             {
-                resolve({ Result: 3 })
+                resolve({ Result: 4 })
                 return
             }
 
