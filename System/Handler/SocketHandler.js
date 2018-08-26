@@ -152,7 +152,6 @@ module.exports = class Socket extends EventEmitter
         return new Promise((resolve) =>
         {
             let Time = 1
-            let Name = 'Default'
             let Count = 1000
 
             switch (PacketID)
@@ -161,32 +160,36 @@ module.exports = class Socket extends EventEmitter
             }
 
             let TimeCurrent = Misc.Time()
-            let Key = Name + '_' + Misc.IsDefined(this.__Owner) ? this.__Owner : this._Address
+            let Key = PacketID + '_' + Misc.IsDefined(this.__Owner) ? this.__Owner : this._Address
 
-            global.DB.collection('ratelimit').find({ $and: [ { Name: Name }, { Key: Key } ] }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
+            global.DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
             {
                 if (Misc.IsDefined(Error))
                 {
                     Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
-                    return resolve(false)
+                    resolve(false)
+                    return
                 }
 
                 if (Misc.IsUndefined(Result[0]))
                 {
-                    global.DB.collection('ratelimit').insertOne({ Name: Name, Key: Key, Count: 1, Expire: TimeCurrent + Time })
-                    return resolve(true)
+                    global.DB.collection('ratelimit').insertOne({ Key: Key, Count: 1, Expire: TimeCurrent + Time })
+                    resolve(true)
+                    return
                 }
 
                 if (Result[0].Expire < TimeCurrent)
                 {
                     global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: TimeCurrent + Time } })
-                    return resolve(true)
+                    resolve(true)
+                    return
                 }
 
                 if (Result[0].Count <= Count)
                 {
                     global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: Result[0].Count + 1 } })
-                    return resolve(true)
+                    resolve(true)
+                    return
                 }
 
                 resolve(false)
