@@ -15,7 +15,7 @@ module.exports.Remove = (ID) =>
 {
     ClientList.delete(ID)
 
-    global.DB.collection('client').remove({ ID: ID })
+    global.DB.collection('client').deleteOne({ ID: ID })
 }
 
 module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>

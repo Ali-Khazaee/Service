@@ -6,7 +6,8 @@ module.exports =
     {
         PhoneSignUp: 0,
         PhoneSignIn: 1,
-        EmailSignUp: 2
+        EmailSignUp: 2,
+        EmailSignIn: 3
     },
 
     Message:

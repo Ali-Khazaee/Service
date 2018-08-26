@@ -8,11 +8,11 @@ module.exports =
     PhoneSignIn: 3, // Implemented
     PhoneSignInVerify: 4, // Implemented
 
-    EmailSignUp: 5, //
-    EmailSignUpVerify: 6, //
+    EmailSignUp: 5, // Implemented
+    EmailSignUpVerify: 6, // Implemented
 
-    EmailSignIn: 7, //
-    EmailSignInVerify: 8, //
+    EmailSignIn: 7, // Implemented
+    EmailSignInVerify: 8, // Implemented
 
     EmailRecovery: 9, //
     EmailRecoveryVerify: 10, //
