@@ -13,7 +13,6 @@ module.exports =
     AUTH_PUBLIC_KEY: FileSystem.readFileSync('./Storage/PublicKey.pem'),
 
     EMAIL_HOST: process.env.EMAIL_HOST,
-    EMAIL_SECURE: process.env.EMAIL_SECURE,
     EMAIL_FROM: process.env.EMAIL_FROM,
     EMAIL_SENDER: process.env.EMAIL_SENDER,
     EMAIL_USERNAME: process.env.EMAIL_USERNAME,

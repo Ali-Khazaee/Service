@@ -153,7 +153,6 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
     {
         host: Config.Core.EMAIL_HOST,
         port: Config.Core.EMAIL_PORT,
-        secure: Config.Core.EMAIL_SECURE,
         auth:
         {
             user: Config.Core.EMAIL_USERNAME,

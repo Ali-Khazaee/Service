@@ -56,7 +56,7 @@ MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.Data
         Misc.Analyze('ServerError', { Error: Error })
     })
 
-    Server.listen(Config.SERVER_PORT, '0.0.0.0', () =>
+    Server.listen(Config.Core.SERVER_PORT, '0.0.0.0', () =>
     {
         Misc.Analyze('ServerListen')
     })
@@ -67,7 +67,7 @@ MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.Data
         Response.end()
     })
 
-    ServerHTTP.listen(Config.HTTP_PORT, (Error) =>
+    ServerHTTP.listen(Config.Core.HTTP_PORT, (Error) =>
     {
         if (Error)
         {
