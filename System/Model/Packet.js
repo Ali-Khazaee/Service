@@ -14,7 +14,7 @@ module.exports =
     EmailSignIn: 7, // Implemented
     EmailSignInVerify: 8, // Implemented
 
-    EmailRecovery: 9, //
+    EmailRecovery: 9, // Implemented
     EmailRecoveryVerify: 10, //
 
     GoogleSignIn: 11, //
