@@ -36,6 +36,9 @@ module.exports.IsUndefined = (Value) =>
     if (typeof Value === 'object' && Value.constructor === Array && Value.length === 0)
         return true
 
+    if (typeof Value === 'object' && this.IsDefined(Value._bsontype) && Value._bsontype === 'ObjectID')
+        return false
+
     if (typeof Value === 'function')
         return false
 
@@ -58,9 +61,6 @@ module.exports.IsUndefined = (Value) =>
             }
         }
     }
-
-    if (Value._bsontype === 'ObjectID')
-        return false
 
     return isNaN(Value)
 }
