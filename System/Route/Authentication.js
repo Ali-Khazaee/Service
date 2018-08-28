@@ -288,6 +288,8 @@ module.exports = (Client) =>
                         ClientManager.Add(Client)
                     }
 
+                    global.DB.collection('register').deleteOne({ Number: Message.Number, Code: Message.Code, Type: DataType.PhoneSignIn })
+
                     Client.Send(Packet.PhoneSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })
             })
@@ -570,6 +572,8 @@ module.exports = (Client) =>
                         Client.__Owner = Result[0].Owner
                         ClientManager.Add(Client)
                     }
+
+                    global.DB.collection('register').deleteOne({ Email: Message.Email, Code: Message.Code, Type: DataType.EmailSignIn })
 
                     Client.Send(Packet.EmailSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })

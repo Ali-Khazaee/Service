@@ -59,6 +59,9 @@ module.exports.IsUndefined = (Value) =>
         }
     }
 
+    if (Value._bsontype === 'ObjectID')
+        return false
+
     return isNaN(Value)
 }
 
