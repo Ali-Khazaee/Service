@@ -487,7 +487,7 @@ module.exports = (Client) =>
      */
     Client.on(Packet.EmailSignIn, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Email))
+        if (Misc.IsUndefined(Message.Email) || !Config.Core.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignIn, ID, { Result: 1 })
 
         global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
@@ -593,7 +593,7 @@ module.exports = (Client) =>
      */
     Client.on(Packet.EmailRecovery, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Email))
+        if (Misc.IsUndefined(Message.Email) || !Config.Core.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailRecovery, ID, { Result: 1 })
 
         global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
