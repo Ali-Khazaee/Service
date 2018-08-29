@@ -57,7 +57,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Key))
             return Client.Send(Packet.Authentication, ID, { Result: 1 })
 
-        DB.collection('key').find({ $and: [ { Key: Message.Key }, { Revoke: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray((Error, Result) =>
+        DB.collection('auth').find({ $and: [ { Key: Message.Key }, { Revoke: { $exists: false } } ] }).limit(1).project({ _id: 0, Owner: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {

@@ -136,7 +136,7 @@ module.exports.IsInvalidID = (ID) =>
     if (MongoID.isValid(ID))
         return false
 
-    ID = ID + ''
+    ID = String(ID)
     let Valid = false
 
     if (ID.length === 12 || ID.length === 24)

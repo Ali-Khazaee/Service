@@ -7,42 +7,37 @@ module.exports = (Count, Time) =>
 {
     return (Message, Next) =>
     {
-        return new Promise((resolve) =>
+        let TimeCurrent = Misc.Time()
+        let Key = Message[DataType.Packet] + '_' + Misc.IsDefined(Message[DataType.Client].__Owner) ? Message[DataType.Client].__Owner : Message[DataType.Client]._Address
+
+        DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
         {
-            let TimeCurrent = Misc.Time()
-            let Key = Message[DataType.Packet] + '_' + Misc.IsDefined(Message[DataType.Cient].__Owner) ? Message[DataType.Client].__Owner : Message[DataType.Client]._Address
-
-            DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
+            if (Misc.IsDefined(Error))
             {
-                resolve()
+                Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
+                Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -1 })
+                return
+            }
 
-                if (Misc.IsDefined(Error))
-                {
-                    Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
-                    Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -1 })
-                    return
-                }
+            if (Misc.IsUndefined(Result[0]))
+            {
+                DB.collection('ratelimit').insertOne({ Key: Key, Count: 1, Expire: TimeCurrent + Time })
+                return Next()
+            }
 
-                if (Misc.IsUndefined(Result[0]))
-                {
-                    DB.collection('ratelimit').insertOne({ Key: Key, Count: 1, Expire: TimeCurrent + Time })
-                    return Next()
-                }
+            if (Result[0].Expire < TimeCurrent)
+            {
+                DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: TimeCurrent + Time } })
+                return Next()
+            }
 
-                if (Result[0].Expire < TimeCurrent)
-                {
-                    DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: TimeCurrent + Time } })
-                    return Next()
-                }
+            if (Result[0].Count <= Count)
+            {
+                DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: Result[0].Count + 1 } })
+                return Next()
+            }
 
-                if (Result[0].Count <= Count)
-                {
-                    DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: Result[0].Count + 1 } })
-                    return Next()
-                }
-
-                Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -4 })
-            })
+            Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -4 })
         })
     }
 }
