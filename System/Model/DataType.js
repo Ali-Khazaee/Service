@@ -11,6 +11,13 @@ module.exports =
         EmailRecovery: 4
     },
 
+    EventHandler:
+    {
+        ID: 0,
+        Client: 3,
+        Packet: 2
+    },
+
     Message:
     {
         TEXT: 0, // Implemented
