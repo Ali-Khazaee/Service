@@ -4,15 +4,20 @@ module.exports = class EventHandler extends EventEmitter
 {
     On(...Args)
     {
-        const Data = { }
-        const Next = () => Args.shift().call(this, Data, Next)
-
-        super['on'](Args.shift(), (PacketID, ID, Message, Client) =>
+        const Data = [ ]
+        const Next = () =>
         {
-            Data.PacketID = PacketID
-            Data.ID = ID
-            Data.Message = Message
-            Data.Client = Client
+            if (Args.length === 1)
+                return Args.shift().apply(this, Data)
+
+            Args.shift().call(this, Data, Next)
+        }
+
+        super['on'](Args.shift(), (ID, Message) =>
+        {
+            Data.push(ID)
+            Data.push(Message)
+
             Next()
         })
     }
