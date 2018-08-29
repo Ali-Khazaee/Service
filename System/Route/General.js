@@ -17,7 +17,7 @@ module.exports = (Client) =>
      * Result: 1 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
      * Result: 2 >> Username Exist
      */
-    Client.On(Packet.Username, RateLimit(Packet.Username, Client, 1800, 3600), (ID, Message) =>
+    Client.On(Packet.Username, RateLimit(1800, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.test(Message.Username))
             return Client.Send(Packet.Username, ID, { Result: 1 })
@@ -52,7 +52,7 @@ module.exports = (Client) =>
      * Result: 2 >> Key Doesn't exist
      * Result: 3 >> Already Authenticated
      */
-    Client.On(Packet.Authentication, RateLimit(Packet.Authentication, Client, 1800, 3600), (ID, Message) =>
+    Client.On(Packet.Authentication, RateLimit(1800, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Key))
             return Client.Send(Packet.Authentication, ID, { Result: 1 })
