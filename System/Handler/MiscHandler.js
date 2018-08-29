@@ -14,7 +14,7 @@ module.exports.Analyze = (Tag, Message) =>
     Message = Message || { }
     Message.CreatedTime = this.Time()
 
-    // FixMe Insert Me In DB Async And Low Priority
+    // FixMe
 
     Logger.log('error', `${Tag} - ${Util.inspect(Message, false, null)}`)
 }
@@ -149,26 +149,19 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
 {
     const Mailer = require('nodemailer')
 
-    let Transporter = Mailer.createTransport(
+    const Transporter = Mailer.createTransport(
     {
-        host: Config.Core.EMAIL_HOST,
-        port: Config.Core.EMAIL_PORT,
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURE === 'true',
         auth:
         {
-            user: Config.Core.EMAIL_USERNAME,
-            pass: Config.Core.EMAIL_PASSWORD
+            user: process.env.EMAIL_USERNAME,
+            pass: process.env.EMAIL_PASSWORD
         }
     })
 
-    let Options =
-    {
-        from: `"${Config.Core.EMAIL_SENDER}" <${Config.Core.EMAIL_FROM}>`,
-        to: Receiver,
-        subject: Subject,
-        html: Content
-    }
-
-    Transporter.sendMail(Options, (Error, Info) =>
+    Transporter.sendMail({ from: `"${process.env.EMAIL_SENDER}" <${process.env.EMAIL_FROM}>`, to: Receiver, subject: Subject, html: Content }, (Error, Info) =>
     {
         if (Error)
         {

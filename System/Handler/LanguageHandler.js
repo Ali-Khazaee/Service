@@ -44,6 +44,11 @@ const LanguageScope =
     ]
 }
 
+module.exports.Lang = (Country, ID, Args = '') =>
+{
+    return LanguageScope[Country][ID](Args)
+}
+
 module.exports =
 {
     PhoneSignUpMessage: 0,
@@ -54,9 +59,4 @@ module.exports =
 
     EmailSignInSubject: 4,
     EmailSignInMessage: 5
-}
-
-module.exports.Lang = (Country, ID, Args = '') =>
-{
-    return LanguageScope[Country][ID](Args)
 }

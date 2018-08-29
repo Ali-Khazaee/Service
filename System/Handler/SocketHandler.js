@@ -1,15 +1,14 @@
 'use strict'
 
-const EventEmitter = require('events')
-
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
+const EventHandler = require('./EventHandler')
 const ClientHandler = require('./ClientHandler')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
 
-module.exports = class Socket extends EventEmitter
+module.exports = class Socket extends EventHandler
 {
     constructor(Sock)
     {

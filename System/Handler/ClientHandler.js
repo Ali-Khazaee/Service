@@ -8,19 +8,19 @@ module.exports.Add = (Client) =>
 {
     ClientList.set(Client._ID, Client)
 
-    global.DB.collection('client').insertOne({ ID: Client._ID, Owner: Client.__Owner, ServerID: Config.ServerID, Time: Misc.Time() })
+    DB.collection('client').insertOne({ ID: Client._ID, Owner: Client.__Owner, ServerID: process.env.SERVER_ID, Time: Misc.Time() })
 }
 
 module.exports.Remove = (ID) =>
 {
     ClientList.delete(ID)
 
-    global.DB.collection('client').deleteOne({ ID: ID })
+    DB.collection('client').deleteOne({ ID: ID })
 }
 
 module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 {
-    global.DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
+    DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
     {
         if (Misc.IsDefined(Error))
         {
@@ -33,7 +33,7 @@ module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 
         for (let I = 0; I < Result.length; I++)
         {
-            if (Result[I].ServerID === Config.ServerID)
+            if (Result[I].ServerID === process.env.SERVER_ID)
             {
                 if (ClientList.has(Result[I].ID))
                 {
@@ -45,7 +45,7 @@ module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
             }
             else
             {
-                // FixMe Send HTTP To Remote Server
+                // FixMe
 
                 if (typeof CallBack === 'function')
                     CallBack()

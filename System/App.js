@@ -1,9 +1,20 @@
 'use strict'
 
-const DotEnv = require('dotenv')
+require('dotenv').config()
+
 const Net = require('net')
 const HTTP = require('http')
 const MongoDB = require('mongodb')
+
+global.Config =
+{
+    SERVER_STORAGE: './Storage/',
+    SERVER_STORAGE_TEMP: './Storage/Temp/',
+
+    PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
+    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
+    PATTERN_IR_PHONE: /^\+989\d{9}$/
+}
 
 const Misc = require('./Handler/MiscHandler')
 const Socket = require('./Handler/SocketHandler')
@@ -11,10 +22,7 @@ const Socket = require('./Handler/SocketHandler')
 process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
 process.on('unhandledRejection', (Error) => Misc.Analyze('AppUnhandledRejection', { Error: Error }))
 
-DotEnv.config()
-global.Config = require('./Config')
-
-MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.DataBase.PASSWORD}@${Config.DataBase.HOST}:${Config.DataBase.PORT}/${Config.DataBase.NAME}`,
+MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${Config.DataBase.PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}`,
 {
     reconnectTries: Number.MAX_VALUE,
     reconnectInterval: 2500,
@@ -56,7 +64,7 @@ MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.Data
         Misc.Analyze('ServerError', { Error: Error })
     })
 
-    Server.listen(Config.Core.SERVER_PORT, '0.0.0.0', () =>
+    Server.listen(process.env.SERVER_PORT, '0.0.0.0', () =>
     {
         Misc.Analyze('ServerListen')
     })
@@ -67,7 +75,7 @@ MongoDB.MongoClient.connect(`mongodb://${Config.DataBase.USERNAME}:${Config.Data
         Response.end()
     })
 
-    ServerHTTP.listen(Config.Core.HTTP_PORT, (Error) =>
+    ServerHTTP.listen(process.env.HTTP_PORT, (Error) =>
     {
         if (Error)
         {
