@@ -107,7 +107,7 @@ module.exports = class Socket extends EventHandler
 
         try
         {
-            this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)))
+            this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), PacketID, this)
         }
         catch (Exception)
         {
