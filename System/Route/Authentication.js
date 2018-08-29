@@ -3,8 +3,9 @@
 const Packet = require('../Model/Packet')
 const Auth = require('../Handler/AuthHandler')
 const Misc = require('../Handler/MiscHandler')
-const ClientManager = require('../Handler/ClientHandler')
 const Language = require('../Handler/LanguageHandler')
+const RateLimit = require('../Handler/RateLimitHandler')
+const ClientManager = require('../Handler/ClientHandler')
 const DataType = require('../Model/DataType').Authentication
 
 module.exports = (Client) =>
@@ -27,7 +28,7 @@ module.exports = (Client) =>
      * Result: 5 >> Username Already Used
      * Result: 6 >> Number Already Used
      */
-    Client.on(Packet.PhoneSignUp, (ID, Message) =>
+    Client.On(Packet.PhoneSignUp, RateLimit(Packet.PhoneSignUp, Client, 60, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Country))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 1 })
@@ -54,7 +55,7 @@ module.exports = (Client) =>
 
         Message.Username = Message.Username.toLowerCase()
 
-        global.DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
