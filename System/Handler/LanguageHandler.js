@@ -20,7 +20,13 @@ const LanguageScope =
         () => `برنامه کانال - کد ورود به حساب کاربری`,
 
         // EmailSignUpMessage: 5
-        (Args) => `<span style="font-size: 14px"> کد ورود شما به برنامه کانال <b>${Args}</b> می باشد </span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`
+        (Args) => `<span style="font-size: 14px"> کد ورود شما به برنامه کانال <b>${Args}</b> می باشد </span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`,
+
+        // EmailRecoverySubject: 6
+        () => `برنامه کانال - بازیابی حساب کاربری`,
+
+        // EmailRecoveryMessage: 7
+        (Args) => `<span style="font-size: 14px"> کد بازیابی حساب کاربری شما در برنامه کانال <b>${Args}</b> می باشد </span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`
     ],
     EN:
     [
@@ -40,7 +46,13 @@ const LanguageScope =
         () => `ChannelApp - Login Code`,
 
         // EmailSignUpMessage: 5
-        (Args) => `<span style="font-size: 14px"><b>${Args}</b> is your Channel login code</span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`
+        (Args) => `<span style="font-size: 14px"><b>${Args}</b> is your Channel login code</span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`,
+
+        // EmailRecoverySubject: 6
+        () => `ChannelApp - Account Recovery`,
+
+        // EmailRecoveryMessage: 7
+        (Args) => `<span style="font-size: 14px"><b>${Args}</b> is your Channel recovery code</span> <br><br> <a href="https://channelapp.ir">ChannelApp.IR</a>`
     ]
 }
 
@@ -58,5 +70,8 @@ module.exports =
     EmailSignUpMessage: 3,
 
     EmailSignInSubject: 4,
-    EmailSignInMessage: 5
+    EmailSignInMessage: 5,
+
+    EmailRecoverySubject: 6,
+    EmailRecoveryMessage: 7
 }

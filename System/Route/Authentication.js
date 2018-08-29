@@ -288,6 +288,8 @@ module.exports = (Client) =>
                         ClientManager.Add(Client)
                     }
 
+                    global.DB.collection('register').deleteOne({ Number: Message.Number, Code: Message.Code, Type: DataType.PhoneSignIn })
+
                     Client.Send(Packet.PhoneSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })
             })
@@ -485,7 +487,7 @@ module.exports = (Client) =>
      */
     Client.on(Packet.EmailSignIn, (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Email))
+        if (Misc.IsUndefined(Message.Email) || !Config.Core.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignIn, ID, { Result: 1 })
 
         global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
@@ -571,8 +573,55 @@ module.exports = (Client) =>
                         ClientManager.Add(Client)
                     }
 
+                    global.DB.collection('register').deleteOne({ Email: Message.Email, Code: Message.Code, Type: DataType.EmailSignIn })
+
                     Client.Send(Packet.EmailSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })
+            })
+        })
+    })
+
+    /**
+     * @Packet EmailRecovery
+     *
+     * @Description Baziyabi Account Az Tarighe Email Marhale Aval
+     *
+     * @Param {string} Email
+     *
+     * Result: 1 >> Email ( Undefined, NE: Regex )
+     * Result: 2 >> Email Dosen't Exist
+     */
+    Client.on(Packet.EmailRecovery, (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.Email) || !Config.Core.PATTERN_EMAIL.test(Message.Email))
+            return Client.Send(Packet.EmailRecovery, ID, { Result: 1 })
+
+        global.DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.EmailRecovery, Error: Error })
+                return Client.Send(Packet.EmailRecovery, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.EmailRecovery, ID, { Result: 2 })
+
+            let Code = 55555 // FixMe - Misc.RandomNumber(5)
+
+            global.DB.collection('register').insertOne({ Owner: Result[0]._id, Type: DataType.EmailRecovery, Email: Message.Email, Code: Code, Time: Misc.Time() }, (Error2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.EmailRecovery, Error: Error2 })
+                    return Client.Send(Packet.EmailRecovery, ID, { Result: -1 })
+                }
+
+                Misc.SendEmail(Message.Email, Language.Lang(Result[0].Country, Language.EmailRecoverySubject), Language.Lang(Result[0].Country, Language.EmailRecoveryMessage, Code))
+
+                Client.Send(Packet.EmailRecovery, ID, { Result: 0 })
+
+                Misc.Analyze('Request', { ID: Packet.EmailRecovery, IP: Client._Address })
             })
         })
     })
