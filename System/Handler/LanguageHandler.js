@@ -64,6 +64,7 @@ module.exports.Lang = (Country, ID, Args = '') =>
 module.exports =
 {
     PhoneSignUpMessage: 0,
+
     PhoneSignInMessage: 1,
 
     EmailSignUpSubject: 2,

@@ -105,20 +105,14 @@ module.exports = class Socket extends EventHandler
         if (this.Auth(PacketID))
             return
 
-        this.RateLimit(PacketID).then((Result) =>
+        try
         {
-            try
-            {
-                if (Result)
-                    this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)))
-                else
-                    Misc.Analyze('RateLimit', { PacketID: PacketID, IP: this._Address, Owner: this.__Owner })
-            }
-            catch (Exception)
-            {
-                Misc.Analyze('OnMessage', { Error: Exception })
-            }
-        })
+            this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), this)
+        }
+        catch (Exception)
+        {
+            Misc.Analyze('OnMessage', { Error: Exception })
+        }
     }
 
     Auth(PacketID)
@@ -144,55 +138,5 @@ module.exports = class Socket extends EventHandler
         }
 
         return Misc.IsDefined(this.__Owner)
-    }
-
-    RateLimit(PacketID)
-    {
-        return new Promise((resolve) =>
-        {
-            let Time = 1
-            let Count = 1000
-
-            switch (PacketID)
-            {
-                // FixMe Add RateLimit For All Packets
-            }
-
-            let TimeCurrent = Misc.Time()
-            let Key = PacketID + '_' + Misc.IsDefined(this.__Owner) ? this.__Owner : this._Address
-
-            global.DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
-            {
-                if (Misc.IsDefined(Error))
-                {
-                    Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
-                    resolve(false)
-                    return
-                }
-
-                if (Misc.IsUndefined(Result[0]))
-                {
-                    global.DB.collection('ratelimit').insertOne({ Key: Key, Count: 1, Expire: TimeCurrent + Time })
-                    resolve(true)
-                    return
-                }
-
-                if (Result[0].Expire < TimeCurrent)
-                {
-                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Expire: TimeCurrent + Time } })
-                    resolve(true)
-                    return
-                }
-
-                if (Result[0].Count <= Count)
-                {
-                    global.DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: Result[0].Count + 1 } })
-                    resolve(true)
-                    return
-                }
-
-                resolve(false)
-            })
-        })
     }
 }

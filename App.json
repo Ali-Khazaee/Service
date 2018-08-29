@@ -1,18 +1,13 @@
 {
     "apps":
     [
-      {
-        "name": "Channel Server",
-        "script": "./System/App.js",
-        "exec_mode": "cluster",
-        "instances": "max",
-        "error_file": "./Storage/Error.log",
-        "out_file": "./Storage/Detail.log",
-        "env":
         {
-          "SERVER_ID": 1,
-          "NODE_ENV": "production"
+            "name": "Channel Server",
+            "script": "./System/App.js",
+            "exec_mode": "cluster",
+            "instances": "max",
+            "error_file": "./Storage/Error.log",
+            "out_file": "./Storage/Detail.log"
         }
-      }
     ]
 }

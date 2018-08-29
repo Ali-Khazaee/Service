@@ -6,7 +6,7 @@ const Winston = require('winston')
 const Logger = Winston.createLogger(
 {
     format: Winston.format.combine(Winston.format.printf((info) => info.message.replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
-    transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/Debug.log' }) ]
+    transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/AppDebug.log' }) ]
 })
 
 module.exports.Analyze = (Tag, Message) =>
@@ -133,7 +133,7 @@ module.exports.RandomNumber = (Count) =>
 
 module.exports.IsInvalidID = (ID) =>
 {
-    if (global.MongoID.isValid(ID))
+    if (MongoID.isValid(ID))
         return false
 
     ID = ID + ''

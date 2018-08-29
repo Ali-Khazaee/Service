@@ -2,10 +2,6 @@
 
 require('dotenv').config()
 
-const Net = require('net')
-const HTTP = require('http')
-const MongoDB = require('mongodb')
-
 global.Config =
 {
     SERVER_STORAGE: './Storage/',
@@ -16,13 +12,17 @@ global.Config =
     PATTERN_IR_PHONE: /^\+989\d{9}$/
 }
 
+const Net = require('net')
+const HTTP = require('http')
+const MongoDB = require('mongodb')
+
 const Misc = require('./Handler/MiscHandler')
 const Socket = require('./Handler/SocketHandler')
 
 process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
 process.on('unhandledRejection', (Error) => Misc.Analyze('AppUnhandledRejection', { Error: Error }))
 
-MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${Config.DataBase.PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}`,
+MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}`,
 {
     reconnectTries: Number.MAX_VALUE,
     reconnectInterval: 2500,
@@ -39,7 +39,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${Config
     Misc.Analyze('DBConnected')
 
     global.MongoID = MongoDB.ObjectID
-    global.DB = DataBase.db(Config.DataBase.NAME)
+    global.DB = DataBase.db(process.env.DATABASE_NAME)
 
     const Server = Net.createServer()
 

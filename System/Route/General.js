@@ -16,7 +16,7 @@ module.exports = (Client) =>
      * Result: 1 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
      * Result: 2 >> Username Exist
      */
-    Client.on(Packet.Username, (ID, Message) =>
+    Client.On(Packet.Username, (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.Core.PATTERN_USERNAME.test(Message.Username))
             return Client.Send(Packet.Username, ID, { Result: 1 })

@@ -5,8 +5,8 @@ const FileSystem = require('fs')
 
 const Misc = require('./MiscHandler')
 
-const AUTH_PRIVATE_KEY = FileSystem.readFileSync('./Storage/PrivateKey.pem')
-const AUTH_PUBLIC_KEY = FileSystem.readFileSync('./Storage/PublicKey.pem')
+const AUTH_PRIVATE_KEY = FileSystem.readFileSync('./Storage/AuthPrivateKey.pem')
+const AUTH_PUBLIC_KEY = FileSystem.readFileSync('./Storage/AuthPublicKey.pem')
 
 module.exports.AuthCreate = (Owner) =>
 {
@@ -20,7 +20,7 @@ module.exports.AuthCreate = (Owner) =>
 
         const Key = `${Segment}.${Signer.sign(AUTH_PRIVATE_KEY, 'base64')}`
 
-        DB.collection('token').insertOne({ Owner: Owner, Key: Key, Time: Time }, (Error) =>
+        DB.collection('auth').insertOne({ Owner: Owner, Key: Key, Time: Time }, (Error) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -56,7 +56,7 @@ module.exports.AuthVerify = (Key) =>
             return
         }
 
-        DB.collection('token').find({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }).project({ _id: 0, Owner: 1 }).limit(1).toArray((Error, Result) =>
+        DB.collection('auth').find({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }).project({ _id: 0, Owner: 1 }).limit(1).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -80,7 +80,7 @@ module.exports.AuthDelete = (Key) =>
 {
     return new Promise((resolve) =>
     {
-        DB.collection('token').updateOne({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.Time() } }, (Error) =>
+        DB.collection('auth').updateOne({ $and: [ { Key: Key }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.Time() } }, (Error) =>
         {
             if (Misc.IsDefined(Error))
             {
