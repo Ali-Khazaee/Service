@@ -274,7 +274,9 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -3 })
 
-                global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Misc.Time() }, (Error2) =>
+                let Time = Misc.Time()
+
+                global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Time }, (Error2) =>
                 {
                     if (Misc.IsDefined(Error2))
                     {
@@ -288,7 +290,7 @@ module.exports = (Client) =>
                         ClientManager.Add(Client)
                     }
 
-                    global.DB.collection('register').deleteOne({ Number: Message.Number, Code: Message.Code, Type: DataType.PhoneSignIn })
+                    global.DB.collection('register').updateOne({ Number: Message.Number, Code: Message.Code, Type: DataType.PhoneSignIn }, { $set: { Delete: Time } })
 
                     Client.Send(Packet.PhoneSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })
@@ -559,7 +561,9 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.EmailSignInVerify, ID, { Result: -3 })
 
-                global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Misc.Time() }, (Error2) =>
+                let Time = Misc.Time()
+
+                global.DB.collection('key').insertOne({ Owner: Result[0].Owner, Key: Result2.Key, Time: Time }, (Error2) =>
                 {
                     if (Misc.IsDefined(Error2))
                     {
@@ -573,7 +577,7 @@ module.exports = (Client) =>
                         ClientManager.Add(Client)
                     }
 
-                    global.DB.collection('register').deleteOne({ Email: Message.Email, Code: Message.Code, Type: DataType.EmailSignIn })
+                    global.DB.collection('register').updateOne({ Email: Message.Email, Code: Message.Code, Type: DataType.EmailSignIn }, { $set: { Delete: Time } })
 
                     Client.Send(Packet.EmailSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
                 })

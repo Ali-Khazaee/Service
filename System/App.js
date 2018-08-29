@@ -92,4 +92,5 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${Config
     -1 : DataBase Warning
     -2 : Request Warning
     -3 : Authentication Warning
+    -4 : RateLimit Exceed
 */

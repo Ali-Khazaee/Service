@@ -36,9 +36,6 @@ module.exports.IsUndefined = (Value) =>
     if (typeof Value === 'object' && Value.constructor === Array && Value.length === 0)
         return true
 
-    if (typeof Value === 'object' && this.IsDefined(Value._bsontype) && Value._bsontype === 'ObjectID')
-        return false
-
     if (typeof Value === 'function')
         return false
 
@@ -146,6 +143,11 @@ module.exports.IsInvalidID = (ID) =>
         Valid = /^[0-9a-fA-F]+$/.test(ID)
 
     return !Valid
+}
+
+module.exports.IsValidID = (ID) =>
+{
+    return !this.IsInvalidID(ID)
 }
 
 module.exports.SendEmail = (Receiver, Subject, Content) =>

@@ -36,6 +36,7 @@ module.exports =
     GroupMessageInfo: 109,
     GroupMessageDelete: 110,
     GroupMessageDelivery: 111,
+    GroupMessageDocument: 112, // Don't Implement
 
     PersonList: 200, //
     PersonMessageSend: 201, // Implemented
@@ -44,6 +45,7 @@ module.exports =
     PersonMessageClear: 204, //
     PersonMessageDelete: 205, //
     PersonMessageDelivery: 206, //
+    PersonMessageDocument: 207, // Don't Implement
 
     Username: 400, // Implemented
     Authentication: 401 // Implemented
