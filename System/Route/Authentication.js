@@ -28,7 +28,7 @@ module.exports = (Client) =>
      * Result: 5 >> Username Already Used
      * Result: 6 >> Number Already Used
      */
-    Client.On(Packet.PhoneSignUp, RateLimit(Packet.PhoneSignUp, Client, 30, 3600), (ID, Message) =>
+    Client.On(Packet.PhoneSignUp, RateLimit(30, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Country))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 1 })
@@ -114,7 +114,7 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.On(Packet.PhoneSignUpVerify, RateLimit(Packet.PhoneSignUpVerify, Client, 120, 3600), (ID, Message) =>
+    Client.On(Packet.PhoneSignUpVerify, RateLimit(120, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
             return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 1 })
@@ -201,7 +201,7 @@ module.exports = (Client) =>
      * Result: 1 >> Number ( Undefined, NE: Regex )
      * Result: 2 >> Number Dosen't Exist
      */
-    Client.On(Packet.PhoneSignIn, RateLimit(Packet.PhoneSignIn, Client, 30, 3600), (ID, Message) =>
+    Client.On(Packet.PhoneSignIn, RateLimit(30, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Number))
             return Client.Send(Packet.PhoneSignIn, ID, { Result: 1 })
@@ -251,7 +251,7 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.On(Packet.PhoneSignInVerify, RateLimit(Packet.PhoneSignInVerify, Client, 120, 3600), (ID, Message) =>
+    Client.On(Packet.PhoneSignInVerify, RateLimit(120, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
             return Client.Send(Packet.PhoneSignInVerify, ID, { Result: 1 })
@@ -317,7 +317,7 @@ module.exports = (Client) =>
      * Result: 5 >> Username Already Used
      * Result: 6 >> Email Already Used
      */
-    Client.On(Packet.EmailSignUp, RateLimit(Packet.EmailSignUp, Client, 120, 3600), (ID, Message) =>
+    Client.On(Packet.EmailSignUp, RateLimit(120, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Country))
             return Client.Send(Packet.EmailSignUp, ID, { Result: 1 })
@@ -401,7 +401,7 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.On(Packet.EmailSignUpVerify, RateLimit(Packet.EmailSignUpVerify, Client, 240, 3600), (ID, Message) =>
+    Client.On(Packet.EmailSignUpVerify, RateLimit(240, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
             return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 1 })
@@ -488,7 +488,7 @@ module.exports = (Client) =>
      * Result: 1 >> Email ( Undefined, NE: Regex )
      * Result: 2 >> Email Dosen't Exist
      */
-    Client.On(Packet.EmailSignIn, RateLimit(Packet.EmailSignIn, Client, 120, 3600), (ID, Message) =>
+    Client.On(Packet.EmailSignIn, RateLimit(120, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignIn, ID, { Result: 1 })
@@ -538,7 +538,7 @@ module.exports = (Client) =>
      * @Return ID: Account ID Bayad To Client Save She
      *         Key: Account Key Bayad To Client Save She, Mojavez e Dastresi e Account e
      */
-    Client.On(Packet.EmailSignInVerify, RateLimit(Packet.EmailSignInVerify, Client, 240, 3600), (ID, Message) =>
+    Client.On(Packet.EmailSignInVerify, RateLimit(240, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
             return Client.Send(Packet.EmailSignInVerify, ID, { Result: 1 })
@@ -596,7 +596,7 @@ module.exports = (Client) =>
      * Result: 1 >> Email ( Undefined, NE: Regex )
      * Result: 2 >> Email Dosen't Exist
      */
-    Client.On(Packet.EmailRecovery, RateLimit(Packet.EmailRecovery, Client, 120, 3600), (ID, Message) =>
+    Client.On(Packet.EmailRecovery, RateLimit(120, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailRecovery, ID, { Result: 1 })
