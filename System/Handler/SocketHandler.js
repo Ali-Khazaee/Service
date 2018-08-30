@@ -1,6 +1,7 @@
 'use strict'
 
 const Misc = require('./MiscHandler')
+const Packet = require('../Model/Packet')
 const EventHandler = require('./EventHandler')
 const ClientHandler = require('./ClientHandler')
 
@@ -99,7 +100,11 @@ module.exports = class Socket extends EventHandler
 
     OnMessage(BufferMessage)
     {
-        let PacketID = BufferMessage.readUInt16LE(0)
+        const PacketID = BufferMessage.readUInt16LE(0)
+        const ID = BufferMessage.readUInt16LE(4)
+
+        if (this.Auth(PacketID))
+            return this.Send(PacketID, ID, { Result: -3 })
 
         try
         {
@@ -109,5 +114,26 @@ module.exports = class Socket extends EventHandler
         {
             Misc.Analyze('OnMessage', { Error: Exception })
         }
+    }
+
+    Auth(PacketID)
+    {
+        switch (PacketID)
+        {
+            case Packet.PhoneSignUp:
+            case Packet.PhoneSignUpVerify:
+            case Packet.PhoneSignIn:
+            case Packet.PhoneSignInVerify:
+            case Packet.EmailSignUp:
+            case Packet.EmailSignUpVerify:
+            case Packet.EmailSignIn:
+            case Packet.EmailSignInVerify:
+            case Packet.GoogleSignIn:
+            case Packet.GoogleSignInVerify:
+            case Packet.Authentication:
+                return false
+        }
+
+        return Misc.IsUndefined(String(this.__Owner))
     }
 }

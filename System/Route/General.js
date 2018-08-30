@@ -3,7 +3,6 @@
 const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
 const RateLimit = require('../Handler/RateLimitHandler')
-const IsAuthenticated = require('../Handler/AuthHandler').IsAuthenticated
 const ClientManager = require('../Handler/ClientHandler')
 
 module.exports = (Client) =>
@@ -18,7 +17,7 @@ module.exports = (Client) =>
      * Result: 1 >> Username ( Undefined, GT: 32, LT: 3, NE: Regex )
      * Result: 2 >> Username Exist
      */
-    Client.On(Packet.Username, IsAuthenticated(), RateLimit(1800, 3600), (ID, Message) =>
+    Client.On(Packet.Username, RateLimit(1800, 3600), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Username) || Message.Username.length < 3 || Message.Username.length > 32 || !Config.PATTERN_USERNAME.test(Message.Username))
             return Client.Send(Packet.Username, ID, { Result: 1 })

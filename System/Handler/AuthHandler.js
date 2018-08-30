@@ -4,7 +4,6 @@ const Crypto = require('crypto')
 const FileSystem = require('fs')
 
 const Misc = require('./MiscHandler')
-const EventHandler = require('../Model/DataType').EventHandler
 
 const AUTH_PRIVATE_KEY = FileSystem.readFileSync('./Storage/AuthPrivateKey.pem')
 const AUTH_PUBLIC_KEY = FileSystem.readFileSync('./Storage/AuthPublicKey.pem')
@@ -93,15 +92,4 @@ module.exports.AuthDelete = (Key) =>
             resolve({ Result: 0 })
         })
     })
-}
-
-module.exports.IsAuthenticated = () =>
-{
-    return (Message, Next) =>
-    {
-        if (Misc.IsValidID(String(Message[EventHandler.Client].__Owner)))
-            return Next()
-
-        Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -3 })
-    }
 }

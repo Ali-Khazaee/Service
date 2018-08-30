@@ -3,7 +3,6 @@
 const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
 const RateLimit = require('../Handler/RateLimitHandler')
-const IsAuthenticated = require('../Handler/AuthHandler').IsAuthenticated
 const MessageType = require('../Model/DataType').Message
 const DeliveryType = require('../Model/DataType').Delivery
 const ClientHandler = require('../Handler/ClientHandler')
@@ -20,7 +19,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> Who ( Undefined, Invalid )
      */
-    Client.On(Packet.PersonMessageList, IsAuthenticated(), RateLimit(120, 60), (ID, Message) =>
+    Client.On(Packet.PersonMessageList, RateLimit(120, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
             return Client.Send(Packet.PersonMessageList, ID, { Result: 1 })
@@ -81,7 +80,7 @@ module.exports = (Client) =>
      * @Return: ID: ID e Message
      *          Time: Zaman e Message
      */
-    Client.On(Packet.PersonMessageSend, IsAuthenticated(), RateLimit(240, 60), (ID, Message) =>
+    Client.On(Packet.PersonMessageSend, RateLimit(240, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.To) || Misc.IsInvalidID(Message.To))
             return Client.Send(Packet.PersonMessageSend, ID, { Result: 1 })
@@ -141,7 +140,7 @@ module.exports = (Client) =>
      *
      * @Return: ID: ID e Group e
      */
-    Client.On(Packet.GroupCreate, IsAuthenticated(), RateLimit(600, 300), (ID, Message) =>
+    Client.On(Packet.GroupCreate, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Name) || Message.Name.length > 32)
             return Client.Send(Packet.GroupCreate, ID, { Result: 1 })
@@ -190,7 +189,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> ID ( Undefined, Invalid )
      */
-    Client.On(Packet.GroupDelete, IsAuthenticated(), RateLimit(600, 300), (ID, Message) =>
+    Client.On(Packet.GroupDelete, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
             return Client.Send(Packet.GroupDelete, ID, { Result: 1 })
@@ -222,7 +221,7 @@ module.exports = (Client) =>
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Name ( Undefined, GT: 32 )
      */
-    Client.On(Packet.GroupRename, IsAuthenticated(), RateLimit(600, 300), (ID, Message) =>
+    Client.On(Packet.GroupRename, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
             return Client.Send(Packet.GroupRename, ID, { Result: 1 })
@@ -249,7 +248,7 @@ module.exports = (Client) =>
      *
      * @Description Gereftane List e Goroh Ha Khod
      */
-    Client.On(Packet.GroupList, IsAuthenticated(), RateLimit(120, 60), (ID) =>
+    Client.On(Packet.GroupList, RateLimit(120, 60), (ID) =>
     {
         DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
         {
@@ -280,7 +279,7 @@ module.exports = (Client) =>
      * Result: 5 >> Group Doesn't Exist | No Rights
      * Result: 6 >> Who Already In Group
      */
-    Client.On(Packet.GroupMemberAdd, IsAuthenticated(), RateLimit(200, 43200), (ID, Message) =>
+    Client.On(Packet.GroupMemberAdd, RateLimit(200, 43200), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
             return Client.Send(Packet.GroupMemberAdd, ID, { Result: 1 })
@@ -355,7 +354,7 @@ module.exports = (Client) =>
      * Result: 4 >> Can't remove yourself
      * Result: 5 >> Group Doesn't Exist | No Rights
      */
-    Client.On(Packet.GroupMemberRemove, IsAuthenticated(), RateLimit(200, 300), (ID, Message) =>
+    Client.On(Packet.GroupMemberRemove, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
             return Client.Send(Packet.GroupMemberRemove, ID, { Result: 1 })
@@ -388,19 +387,18 @@ module.exports = (Client) =>
                 if (Misc.IsUndefined(Result2[0]))
                     return Client.Send(Packet.GroupMemberRemove, ID, { Result: 5 })
 
-                try
+                DB.collection('group_member').deleteOne({ $and: [ { Group: MongoID(Message.ID) }, { Member: MongoID(Message.Who) } ] }, (Error3, Result3) =>
                 {
-                    DB.collection('group_member').deleteOne({ $and: [ { Group: MongoID(Message.ID) }, { Member: MongoID(Message.Who) } ] })
+                    if (Misc.IsDefined(Error3))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error3 })
+                        return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
+                    }
 
                     Client.Send(Packet.GroupMemberRemove, ID, { Result: 0 })
 
                     Misc.Analyze('Request', { ID: Packet.GroupMemberRemove, IP: Client._Address })
-                }
-                catch (Error3)
-                {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error3 })
-                    return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
-                }
+                })
             })
         })
     })
@@ -425,7 +423,7 @@ module.exports = (Client) =>
      * @Return: ID: ID e Message
      *          Time: Zaman e Message
      */
-    Client.On(Packet.GroupMessageSend, IsAuthenticated(), RateLimit(240, 60), (ID, Message) =>
+    Client.On(Packet.GroupMessageSend, RateLimit(240, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
             return Client.Send(Packet.GroupMessageSend, ID, { Result: 1 })
