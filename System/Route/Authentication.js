@@ -166,9 +166,9 @@ module.exports = (Client) =>
                             if (Result5.Result !== 0)
                                 return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -3 })
 
-                            if (Misc.IsInvalidID(String(Client.__Owner)))
+                            if (Misc.IsInvalidID(Client.__Owner))
                             {
-                                Client.__Owner = Result4.insertedId
+                                Client.__Owner = String(Result4.insertedId)
                                 ClientManager.Add(Client)
                             }
 
@@ -264,9 +264,9 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -3 })
 
-                if (Misc.IsInvalidID(String(Client.__Owner)))
+                if (Misc.IsInvalidID(Client.__Owner))
                 {
-                    Client.__Owner = Result[0].Owner
+                    Client.__Owner = String(Result[0].Owner)
                     ClientManager.Add(Client)
                 }
 
@@ -431,9 +431,9 @@ module.exports = (Client) =>
                             if (Result5.Result !== 0)
                                 return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -3 })
 
-                            if (Misc.IsInvalidID(String(Client.__Owner)))
+                            if (Misc.IsInvalidID(Client.__Owner))
                             {
-                                Client.__Owner = Result4.insertedId
+                                Client.__Owner = String(Result4.insertedId)
                                 ClientManager.Add(Client)
                             }
 
@@ -529,9 +529,9 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.EmailSignInVerify, ID, { Result: -3 })
 
-                if (Misc.IsInvalidID(String(Client.__Owner)))
+                if (Misc.IsInvalidID(Client.__Owner))
                 {
-                    Client.__Owner = Result[0].Owner
+                    Client.__Owner = String(Result[0].Owner)
                     ClientManager.Add(Client)
                 }
 

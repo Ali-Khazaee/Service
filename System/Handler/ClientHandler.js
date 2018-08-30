@@ -15,14 +15,11 @@ module.exports.Remove = (ID) =>
 {
     ClientList.delete(ID)
 
-    try
+    DB.collection('client').deleteOne({ ID: ID }, (Error, Result) =>
     {
-        DB.collection('client').deleteOne({ ID: ID })
-    }
-    catch (Error)
-    {
-        Misc.Analyze('ClientRemove', { Error: Error })
-    }
+        if (Misc.IsDefined(Error))
+            Misc.Analyze('ClientRemove', { Error: Error })
+    })
 }
 
 module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>

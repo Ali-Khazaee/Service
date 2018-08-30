@@ -68,10 +68,10 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.Authentication, ID, { Result: 2 })
 
-            if (Misc.IsValidID(String(Client.__Owner)))
+            if (Misc.IsValidID(Client.__Owner))
                 return Client.Send(Packet.Authentication, ID, { Result: 3 })
 
-            Client.__Owner = Result[0].Owner
+            Client.__Owner = String(Result[0].Owner)
 
             ClientManager.Add(Client)
 

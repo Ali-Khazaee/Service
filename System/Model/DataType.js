@@ -26,11 +26,5 @@ module.exports =
         FILE: 4,
         GIF: 5,
         STICKER: 6
-    },
-
-    Delivery:
-    {
-        Private: 0,
-        Group: 1
     }
 }

@@ -134,6 +134,6 @@ module.exports = class Socket extends EventHandler
                 return false
         }
 
-        return Misc.IsUndefined(String(this.__Owner))
+        return Misc.IsUndefined(this.__Owner)
     }
 }

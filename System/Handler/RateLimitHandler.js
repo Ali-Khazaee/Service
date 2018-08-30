@@ -8,7 +8,7 @@ module.exports = (Count, Time) =>
     return (Message, Next) =>
     {
         let TimeCurrent = Misc.Time()
-        let Key = `${Message[EventHandler.Packet]}_${(Misc.IsValidID(String(Message[EventHandler.Client].__Owner)) ? Message[EventHandler.Client].__Owner : Message[EventHandler.Client]._Address)}`
+        let Key = `${Message[EventHandler.Packet]}_${(Misc.IsValidID(Message[EventHandler.Client].__Owner) ? Message[EventHandler.Client].__Owner : Message[EventHandler.Client]._Address)}`
 
         DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
         {

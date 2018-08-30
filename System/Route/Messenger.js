@@ -4,7 +4,6 @@ const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
 const RateLimit = require('../Handler/RateLimitHandler')
 const MessageType = require('../Model/DataType').Message
-const DeliveryType = require('../Model/DataType').Delivery
 const ClientHandler = require('../Handler/ClientHandler')
 
 module.exports = (Client) =>
@@ -103,7 +102,7 @@ module.exports = (Client) =>
                 return Client.Send(Packet.PersonMessageSend, ID, { Result: 3 })
 
             const Time = Misc.TimeMili()
-            const DataMessage = { From: MongoID(Client.__Owner), To: MongoID(Message.To), Message: Message.Message, Delivery: DeliveryType.Private, Type: MessageType.TEXT, Time: Time }
+            const DataMessage = { From: MongoID(Client.__Owner), To: MongoID(Message.To), Message: Message.Message, Type: MessageType.TEXT, Time: Time }
 
             if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
                 DataMessage.Reply = Message.ReplyID
@@ -298,7 +297,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 3 })
 
-            if (Message.Who === String(Client.__Owner))
+            if (Message.Who === Client.__Owner)
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 4 })
 
             DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
@@ -373,7 +372,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 3 })
 
-            if (Message.Who === String(Client.__Owner))
+            if (Message.Who === Client.__Owner)
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 4 })
 
             DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
@@ -471,12 +470,12 @@ module.exports = (Client) =>
                         return Client.Send(Packet.GroupMessageSend, ID, { Result: 6 })
 
                     const Time = Misc.TimeMili()
-                    const DataMessage = { Group: MongoID(Message.ID), From: MongoID(Client.__Owner), To: MongoID(Message.Who), Message: Message.Message, Delivery: DeliveryType.Group, Type: MessageType.TEXT, Time: Time }
+                    const DataMessage = { Group: MongoID(Message.ID), From: MongoID(Client.__Owner), To: MongoID(Message.Who), Message: Message.Message, Type: MessageType.TEXT, Time: Time }
 
                     if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
                         DataMessage.Reply = Message.ReplyID
 
-                    DB.collection('message').insertOne(DataMessage, (Error4, Result4) =>
+                    DB.collection('group_message').insertOne(DataMessage, (Error4, Result4) =>
                     {
                         if (Misc.IsDefined(Error4))
                         {
@@ -488,7 +487,7 @@ module.exports = (Client) =>
 
                         ClientHandler.Send(Message.Who, Packet.GroupMessageSend, ID, DataMessage, () =>
                         {
-                            DB.collection('message').updateOne({ _id: MongoID(Result4.insertedId) }, { $set: { Delivery: Time } })
+                            DB.collection('group_message').updateOne({ _id: MongoID(Result4.insertedId) }, { $set: { Delivery: Time } })
                         })
 
                         Misc.Analyze('Request', { ID: Packet.GroupMessageSend, IP: Client._Address })
