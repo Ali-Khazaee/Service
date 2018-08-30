@@ -15,12 +15,19 @@ module.exports.Remove = (ID) =>
 {
     ClientList.delete(ID)
 
-    DB.collection('client').deleteOne({ ID: ID })
+    try
+    {
+        DB.collection('client').deleteOne({ ID: ID })
+    }
+    catch (Error)
+    {
+        Misc.Analyze('ClientRemove', { Error: Error })
+    }
 }
 
 module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 {
-    DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Result, Error) =>
+    DB.collection('client').find({ Owner: MongoID(Owner) }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Error, Result) =>
     {
         if (Misc.IsDefined(Error))
         {

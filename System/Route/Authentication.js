@@ -168,7 +168,7 @@ module.exports = (Client) =>
                             if (Result5.Result !== 0)
                                 return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: -3 })
 
-                            if (Misc.IsUndefined(Client.__Owner))
+                            if (Misc.IsInvalidID(String(Client.__Owner)))
                             {
                                 Client.__Owner = Result4.insertedId
                                 ClientManager.Add(Client)
@@ -266,7 +266,7 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.PhoneSignInVerify, ID, { Result: -3 })
 
-                if (Misc.IsUndefined(Client.__Owner))
+                if (Misc.IsInvalidID(String(Client.__Owner)))
                 {
                     Client.__Owner = Result[0].Owner
                     ClientManager.Add(Client)
@@ -321,6 +321,7 @@ module.exports = (Client) =>
             return Client.Send(Packet.EmailSignUp, ID, { Result: 4 })
 
         Message.Username = Message.Username.toLowerCase()
+        Message.Email = Message.Email.toLowerCase()
 
         DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
@@ -389,6 +390,8 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Email))
             return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 2 })
 
+        Message.Email = Message.Email.toLowerCase()
+
         DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.EmailSignUp }, { Time: { $gt: Misc.Time() - 1800 } }, { Email: Message.Email } ] }).limit(1).project({ _id: 0, Username: 1, Country: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
@@ -435,7 +438,7 @@ module.exports = (Client) =>
                             if (Result5.Result !== 0)
                                 return Client.Send(Packet.EmailSignUpVerify, ID, { Result: -3 })
 
-                            if (Misc.IsUndefined(Client.__Owner))
+                            if (Misc.IsInvalidID(String(Client.__Owner)))
                             {
                                 Client.__Owner = Result4.insertedId
                                 ClientManager.Add(Client)
@@ -463,6 +466,8 @@ module.exports = (Client) =>
     {
         if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignIn, ID, { Result: 1 })
+
+        Message.Email = Message.Email.toLowerCase()
 
         DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
         {
@@ -517,6 +522,8 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Email))
             return Client.Send(Packet.EmailSignInVerify, ID, { Result: 2 })
 
+        Message.Email = Message.Email.toLowerCase()
+
         DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.EmailSignIn }, { Time: { $gt: Misc.Time() - 1800 } }, { Email: Message.Email }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1, Owner: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
@@ -533,7 +540,7 @@ module.exports = (Client) =>
                 if (Result2.Result !== 0)
                     return Client.Send(Packet.EmailSignInVerify, ID, { Result: -3 })
 
-                if (Misc.IsUndefined(Client.__Owner))
+                if (Misc.IsInvalidID(String(Client.__Owner)))
                 {
                     Client.__Owner = Result[0].Owner
                     ClientManager.Add(Client)
@@ -542,51 +549,6 @@ module.exports = (Client) =>
                 DB.collection('register').updateOne({ Email: Message.Email, Code: Message.Code, Type: DataType.EmailSignIn }, { $set: { Delete: Misc.Time() } })
 
                 Client.Send(Packet.EmailSignInVerify, ID, { Result: 0, ID: Result[0].Owner, Key: Result2.Key })
-            })
-        })
-    })
-
-    /**
-     * @Packet EmailRecovery
-     *
-     * @Description Baziyabi Account Az Tarighe Email Marhale Aval
-     *
-     * @Param {string} Email
-     *
-     * Result: 1 >> Email ( Undefined, NE: Regex )
-     * Result: 2 >> Email Dosen't Exist
-     */
-    Client.On(Packet.EmailRecovery, RateLimit(120, 3600), (ID, Message) =>
-    {
-        if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
-            return Client.Send(Packet.EmailRecovery, ID, { Result: 1 })
-
-        DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
-        {
-            if (Misc.IsDefined(Error))
-            {
-                Misc.Analyze('DBError', { Tag: Packet.EmailRecovery, Error: Error })
-                return Client.Send(Packet.EmailRecovery, ID, { Result: -1 })
-            }
-
-            if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.EmailRecovery, ID, { Result: 2 })
-
-            let Code = 55555 // FixMe - Misc.RandomNumber(5)
-
-            DB.collection('register').insertOne({ Owner: Result[0]._id, Type: DataType.EmailRecovery, Email: Message.Email, Code: Code, Time: Misc.Time() }, (Error2) =>
-            {
-                if (Misc.IsDefined(Error2))
-                {
-                    Misc.Analyze('DBError', { Tag: Packet.EmailRecovery, Error: Error2 })
-                    return Client.Send(Packet.EmailRecovery, ID, { Result: -1 })
-                }
-
-                Misc.SendEmail(Message.Email, Language.Lang(Result[0].Country, Language.EmailRecoverySubject), Language.Lang(Result[0].Country, Language.EmailRecoveryMessage, Code))
-
-                Client.Send(Packet.EmailRecovery, ID, { Result: 0 })
-
-                Misc.Analyze('Request', { ID: Packet.EmailRecovery, IP: Client._Address })
             })
         })
     })

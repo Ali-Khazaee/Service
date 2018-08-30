@@ -14,15 +14,8 @@ module.exports =
     EmailSignIn: 7, // Implemented
     EmailSignInVerify: 8, // Implemented
 
-    EmailRecovery: 9, // Implemented
-    EmailRecoveryVerify: 10, //
-
     GoogleSignIn: 11, //
     GoogleSignInVerify: 12, //
-
-    UsernameSignIn: 13, //
-
-    Password: 14, //
 
     GroupList: 100, // Implemented
     GroupCreate: 101, // Implemented

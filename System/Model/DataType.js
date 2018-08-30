@@ -7,8 +7,7 @@ module.exports =
         PhoneSignUp: 0,
         PhoneSignIn: 1,
         EmailSignUp: 2,
-        EmailSignIn: 3,
-        EmailRecovery: 4
+        EmailSignIn: 3
     },
 
     EventHandler:
@@ -27,5 +26,11 @@ module.exports =
         FILE: 4,
         GIF: 5,
         STICKER: 6
+    },
+
+    Delivery:
+    {
+        Private: 0,
+        Group: 1
     }
 }

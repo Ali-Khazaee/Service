@@ -1,21 +1,21 @@
 'use strict'
 
 const Misc = require('./MiscHandler')
-const DataType = require('../Model/DataType').EventHandler
+const EventHandler = require('../Model/DataType').EventHandler
 
 module.exports = (Count, Time) =>
 {
     return (Message, Next) =>
     {
         let TimeCurrent = Misc.Time()
-        let Key = Message[DataType.Packet] + '_' + Misc.IsDefined(Message[DataType.Client].__Owner) ? Message[DataType.Client].__Owner : Message[DataType.Client]._Address
+        let Key = `${Message[EventHandler.Packet]}_${(Misc.IsDefined(Message[EventHandler.Client].__Owner) ? Message[EventHandler.Client].__Owner : Message[EventHandler.Client]._Address)}`
 
         DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
                 Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
-                Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -1 })
+                Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -1 })
                 return
             }
 
@@ -37,7 +37,7 @@ module.exports = (Count, Time) =>
                 return Next()
             }
 
-            Message[DataType.Client].Send(Message[DataType.Packet], Message[DataType.ID], { Result: -4 })
+            Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -4 })
         })
     }
 }
