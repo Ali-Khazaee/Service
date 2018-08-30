@@ -42,7 +42,7 @@ module.exports = (Client) =>
         let CountryPattern
         let CountryIsInvalid = true
 
-        switch (Message.Country.toUpperCase())
+        switch (Message.Country)
         {
             case 'IR':
                 CountryPattern = Config.PATTERN_IR_PHONE
@@ -52,8 +52,6 @@ module.exports = (Client) =>
 
         if (CountryIsInvalid || !CountryPattern.test(Message.Number))
             return Client.Send(Packet.PhoneSignUp, ID, { Result: 4 })
-
-        Message.Username = Message.Username.toLowerCase()
 
         DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
@@ -79,7 +77,7 @@ module.exports = (Client) =>
 
                 let Code = 55555 // FixMe Misc.RandomNumber(5)
 
-                DB.collection('register').insertOne({ Type: DataType.PhoneSignUp, Number: Message.Number, Username: Message.Username, Code: Code, Country: Message.Country.toUpperCase(), Time: Misc.Time() }, (Error3) =>
+                DB.collection('register').insertOne({ Type: DataType.PhoneSignUp, Number: Message.Number, Username: Message.Username, Code: Code, Country: Message.Country, Time: Misc.Time() }, (Error3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
@@ -310,7 +308,7 @@ module.exports = (Client) =>
 
         let CountryIsInvalid = true
 
-        switch (Message.Country.toUpperCase())
+        switch (Message.Country)
         {
             case 'IR':
                 CountryIsInvalid = false
@@ -319,9 +317,6 @@ module.exports = (Client) =>
 
         if (CountryIsInvalid)
             return Client.Send(Packet.EmailSignUp, ID, { Result: 4 })
-
-        Message.Username = Message.Username.toLowerCase()
-        Message.Email = Message.Email.toLowerCase()
 
         DB.collection('account').find({ Username: Message.Username }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
@@ -347,7 +342,7 @@ module.exports = (Client) =>
 
                 let Code = 55555 // FixMe Misc.RandomNumber(5)
 
-                DB.collection('register').insertOne({ Type: DataType.EmailSignUp, Email: Message.Email, Username: Message.Username, Code: Code, Country: Message.Country.toUpperCase(), Time: Misc.Time() }, (Error3) =>
+                DB.collection('register').insertOne({ Type: DataType.EmailSignUp, Email: Message.Email, Username: Message.Username, Code: Code, Country: Message.Country, Time: Misc.Time() }, (Error3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
@@ -389,8 +384,6 @@ module.exports = (Client) =>
 
         if (Misc.IsUndefined(Message.Email))
             return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 2 })
-
-        Message.Email = Message.Email.toLowerCase()
 
         DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.EmailSignUp }, { Time: { $gt: Misc.Time() - 1800 } }, { Email: Message.Email } ] }).limit(1).project({ _id: 0, Username: 1, Country: 1 }).toArray((Error, Result) =>
         {
@@ -467,8 +460,6 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Email) || !Config.PATTERN_EMAIL.test(Message.Email))
             return Client.Send(Packet.EmailSignIn, ID, { Result: 1 })
 
-        Message.Email = Message.Email.toLowerCase()
-
         DB.collection('account').find({ Email: Message.Email }).limit(1).project({ _id: 1, Country: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
@@ -521,8 +512,6 @@ module.exports = (Client) =>
 
         if (Misc.IsUndefined(Message.Email))
             return Client.Send(Packet.EmailSignInVerify, ID, { Result: 2 })
-
-        Message.Email = Message.Email.toLowerCase()
 
         DB.collection('register').find({ $and: [ { Code: Message.Code }, { Type: DataType.EmailSignIn }, { Time: { $gt: Misc.Time() - 1800 } }, { Email: Message.Email }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1, Owner: 1 }).toArray((Error, Result) =>
         {

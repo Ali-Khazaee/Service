@@ -8,7 +8,7 @@ global.Config =
     SERVER_STORAGE_TEMP: './Storage/Temp/',
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
-    PATTERN_USERNAME: /^(?![^a-zA-Z])(?!.*([_.])\1)[\w.]*[a-zA-Z]$/,
+    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
     PATTERN_IR_PHONE: /^\+989\d{9}$/
 }
 
