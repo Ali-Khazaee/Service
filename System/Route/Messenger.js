@@ -14,7 +14,7 @@ module.exports = (Client) =>
      * @Description Gereftan e List e Akharin Message Ha
      *
      * @Param {string} Who
-     * @Param {int} Skip
+     * @Param {int} Skip - Optional
      *
      * Result: 1 >> Who ( Undefined, Invalid )
      */
@@ -53,9 +53,13 @@ module.exports = (Client) =>
 
                     let Time = Misc.TimeMili()
 
-                    DB.collection('message').updateOne({ _id: Result2[0]._id }, { $set: { Delivery: Time } })
+                    DB.collection('message').updateOne({ _id: Result2[0]._id }, { $set: { Delivery: Time } }, (Error3) =>
+                    {
+                        if (Misc.IsDefined(Error3))
+                            return Misc.Analyze('DBError', { Tag: Packet.PersonMessageList, Error: Error3 })
 
-                    ClientHandler.Send(Message.Who, Packet.PersonMessageDelivery, ID, { ID: Result2[0]._id, Delivery: Time })
+                        ClientHandler.Send(Message.Who, Packet.PersonMessageDelivery, ID, { ID: Result2[0]._id, Delivery: Time })
+                    })
                 })
             }
 
@@ -119,7 +123,11 @@ module.exports = (Client) =>
 
                 ClientHandler.Send(Message.To, Packet.PersonMessageSend, ID, DataMessage, () =>
                 {
-                    DB.collection('message').updateOne({ _id: MongoID(Result2.insertedId) }, { $set: { Delivery: Time } })
+                    DB.collection('message').updateOne({ _id: Result2.insertedId }, { $set: { Delivery: Time } }, (Error3, Result3) =>
+                    {
+                        if (Misc.IsDefined(Error3))
+                            Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error3 })
+                    })
                 })
 
                 Misc.Analyze('Request', { ID: Packet.PersonMessageSend, IP: Client._Address })
@@ -155,7 +163,7 @@ module.exports = (Client) =>
             if (Result > 100)
                 return Client.Send(Packet.GroupCreate, ID, { Result: 2 })
 
-            DB.collection('group').insertOne({ Name: Message.Name, Owner: Client.__Owner }, (Error2, Result2) =>
+            DB.collection('group').insertOne({ Name: Message.Name, Owner: MongoID(Client.__Owner) }, (Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -163,7 +171,7 @@ module.exports = (Client) =>
                     return Client.Send(Packet.GroupCreate, ID, { Result: -1 })
                 }
 
-                DB.collection('group_member').insertOne({ Group: Result2.insertedId, Member: MongoID(Message.Who) }, (Error3) =>
+                DB.collection('group_member').insertOne({ Group: Result2.insertedId, Member: MongoID(Client.__Owner) }, (Error3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
@@ -386,7 +394,7 @@ module.exports = (Client) =>
                 if (Misc.IsUndefined(Result2[0]))
                     return Client.Send(Packet.GroupMemberRemove, ID, { Result: 5 })
 
-                DB.collection('group_member').deleteOne({ $and: [ { Group: MongoID(Message.ID) }, { Member: MongoID(Message.Who) } ] }, (Error3, Result3) =>
+                DB.collection('group_member').deleteOne({ $and: [ { Group: MongoID(Message.ID) }, { Member: MongoID(Message.Who) } ] }, (Error3) =>
                 {
                     if (Misc.IsDefined(Error3))
                     {
@@ -487,12 +495,191 @@ module.exports = (Client) =>
 
                         ClientHandler.Send(Message.Who, Packet.GroupMessageSend, ID, DataMessage, () =>
                         {
-                            DB.collection('group_message').updateOne({ _id: MongoID(Result4.insertedId) }, { $set: { Delivery: Time } })
+                            DB.collection('group_message').updateOne({ _id: MongoID(Result4.insertedId) }, { $set: { Delivery: Time } }, (Error5) =>
+                            {
+                                if (Misc.IsDefined(Error4))
+                                    return Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error5 })
+                            })
                         })
 
                         Misc.Analyze('Request', { ID: Packet.GroupMessageSend, IP: Client._Address })
                     })
                 })
+            })
+        })
+    })
+
+    /**
+     * @Packet GroupMessageList
+     *
+     * @Description Gereftan e List e Group Message Ha
+     *
+     * @Param {string} ID
+     * @Param {int} Skip - Optional
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     */
+    Client.On(Packet.GroupMessageList, RateLimit(120, 60), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupMessageList, ID, { Result: 1 })
+
+        Message.Skip = parseInt(Message.Skip || 0)
+
+        if (Misc.IsUndefined(Message.Skip))
+            Message.Skip = 0
+
+        DB.collection('group_message').find({ $and: [ { Group: MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).sort({ Time: 1 }).skip(Message.Skip).limit(10).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageList, Error: Error })
+                return Client.Send(Packet.GroupMessageList, ID, { Result: -1 })
+            }
+
+            Client.Send(Packet.GroupMessageList, ID, { Result: 0, Message: Result })
+
+            for (let I = 0; I < Result.length; I++)
+            {
+                DB.collection('group_message').find({ $and: [ { _id: Result[I]._id }, { From: Result[I].From }, { Delivery: { $exists: false } } ] }).limit(1).project({ _id: 1, From: 1 }).toArray((Error2, Result2) =>
+                {
+                    if (Misc.IsDefined(Error2))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMessageList, Error: Error2 })
+                        return Client.Send(Packet.GroupMessageList, ID, { Result: -1 })
+                    }
+
+                    if (Misc.IsUndefined(Result2[0]))
+                        return
+
+                    let Time = Misc.TimeMili()
+
+                    DB.collection('group_message').updateOne({ _id: Result2[0]._id }, { $set: { Delivery: Time } }, (Error3) =>
+                    {
+                        if (Misc.IsDefined(Error3))
+                            return Misc.Analyze('DBError', { Tag: Packet.GroupMessageList, Error: Error3 })
+
+                        ClientHandler.Send(Result2[0].From, Packet.GroupMessageDelivery, ID, { ID: Result2[0]._id, Delivery: Time })
+                    })
+                })
+            }
+
+            Misc.Analyze('Request', { ID: Packet.GroupMessageList, IP: Client._Address })
+        })
+    })
+
+    /**
+     * @Packet GroupMessageInfo
+     *
+     * @Description Gereftan Info Message Ersal Shode To Group
+     *
+     * @Param {string} ID
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     * Result: 2 >> Message doesn't exists
+     *
+     * @Return: Time: Zaman e Message
+     */
+    Client.On(Packet.GroupMessageInfo, RateLimit(200, 300), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupMessageInfo, ID, { Result: 1 })
+
+        DB.collection('group_message').find({ $and: [ { _id: MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).project({ _id: 0, Time: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageInfo, Error: Error })
+                return Client.Send(Packet.GroupMessageInfo, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.GroupMessageInfo, ID, { Result: 2 })
+
+            Client.Send(Packet.GroupMessageInfo, ID, { Result: Result[0].Time })
+
+            Misc.Analyze('Request', { ID: Packet.GroupMessageInfo, IP: Client._Address })
+        })
+    })
+
+    /**
+     * @Packet GroupMessageDelete
+     *
+     * @Description Delete Message Ersal Shode To Group
+     *
+     * @Param {string} ID
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     * Result: 2 >> Message doesn't exists
+     */
+    Client.On(Packet.GroupMessageDelete, RateLimit(200, 300), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupMessageDelete, ID, { Result: 1 })
+
+        DB.collection('group_message').find({ $and: [ { _id: MongoID(Message.ID) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.GroupMessageDelete, ID, { Result: 2 })
+
+            DB.collection('group_message').updateOne({ _id: MongoID(Message.ID) }, { $set: { Delete: Misc.TimeMili() } }, (Error2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
+                    return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+                }
+
+                Client.Send(Packet.GroupMessageDelete, ID, { Result: 0 })
+
+                Misc.Analyze('Request', { ID: Packet.GroupMessageDelete, IP: Client._Address })
+            })
+        })
+    })
+
+    /**
+     * @Packet GroupMessageDelivery
+     *
+     * @Description Deliver Message Ersal Shode to Group
+     *
+     * @Param {string} ID
+     *
+     * Result: 1 >> ID ( Undefined, Invalid )
+     * Result: 2 >> Message doesn't exists or already has been delivered
+     */
+    Client.On(Packet.GroupMessageDelete, RateLimit(200, 300), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
+            return Client.Send(Packet.GroupMessageDelete, ID, { Result: 1 })
+
+        DB.collection('group_message').find({ $and: [ { _id: MongoID(Message.ID) }, { Delete: { $exists: false } }, { Delivery: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.GroupMessageDelete, ID, { Result: 2 })
+
+            DB.collection('group_message').updateOne({ _id: MongoID(Message.ID) }, { $set: { Delivery: Misc.TimeMili() } }, (Error2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
+                    return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+                }
+
+                Client.Send(Packet.GroupMessageDelete, ID, { Result: 0 })
+
+                Misc.Analyze('Request', { ID: Packet.GroupMessageDelete, IP: Client._Address })
             })
         })
     })

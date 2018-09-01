@@ -8,7 +8,7 @@ module.exports.Add = (Client) =>
 {
     ClientList.set(Client._ID, Client)
 
-    DB.collection('client').insertOne({ ID: Client._ID, Owner: Client.__Owner, ServerID: process.env.SERVER_ID, Time: Misc.Time() })
+    DB.collection('client').insertOne({ ID: Client._ID, Owner: MongoID(Client.__Owner), ServerID: process.env.SERVER_ID, Time: Misc.Time() })
 }
 
 module.exports.Remove = (ID) =>

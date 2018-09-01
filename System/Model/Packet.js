@@ -24,11 +24,11 @@ module.exports =
     GroupPicture: 104, // Don't Implement
     GroupMemberAdd: 105, // Implemented
     GroupMemberRemove: 106, // Implemented
-    GroupMessageSend: 107,
-    GroupMessageList: 108,
-    GroupMessageInfo: 109,
-    GroupMessageDelete: 110,
-    GroupMessageDelivery: 111,
+    GroupMessageSend: 107, // Implemented
+    GroupMessageList: 108, // Implemented
+    GroupMessageInfo: 109, // Implemented
+    GroupMessageDelete: 110, // Implemented
+    GroupMessageDelivery: 111, // Implemented
     GroupMessageDocument: 112, // Don't Implement
 
     PersonList: 200, //
