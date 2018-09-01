@@ -653,33 +653,33 @@ module.exports = (Client) =>
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Message doesn't exists or already has been delivered
      */
-    Client.On(Packet.GroupMessageDelete, RateLimit(200, 300), (ID, Message) =>
+    Client.On(Packet.GroupMessageDelivery, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
-            return Client.Send(Packet.GroupMessageDelete, ID, { Result: 1 })
+            return Client.Send(Packet.GroupMessageDelivery, ID, { Result: 1 })
 
         DB.collection('group_message').find({ $and: [ { _id: MongoID(Message.ID) }, { Delete: { $exists: false } }, { Delivery: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
-                Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
-                return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelivery, Error: Error })
+                return Client.Send(Packet.GroupMessageDelivery, ID, { Result: -1 })
             }
 
             if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.GroupMessageDelete, ID, { Result: 2 })
+                return Client.Send(Packet.GroupMessageDelivery, ID, { Result: 2 })
 
             DB.collection('group_message').updateOne({ _id: MongoID(Message.ID) }, { $set: { Delivery: Misc.TimeMili() } }, (Error2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
-                    return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelivery, Error: Error2 })
+                    return Client.Send(Packet.GroupMessageDelivery, ID, { Result: -1 })
                 }
 
-                Client.Send(Packet.GroupMessageDelete, ID, { Result: 0 })
+                Client.Send(Packet.GroupMessageDelivery, ID, { Result: 0 })
 
-                Misc.Analyze('Request', { ID: Packet.GroupMessageDelete, IP: Client._Address })
+                Misc.Analyze('Request', { ID: Packet.GroupMessageDelivery, IP: Client._Address })
             })
         })
     })
