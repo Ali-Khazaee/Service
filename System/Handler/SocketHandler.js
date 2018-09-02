@@ -1,14 +1,15 @@
 'use strict'
 
+const EventEmitter = require('events')
+
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
-const EventHandler = require('./EventHandler')
 const ClientHandler = require('./ClientHandler')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
 
-module.exports = class Socket extends EventHandler
+module.exports = class Socket extends EventEmitter
 {
     constructor(Sock)
     {
@@ -82,6 +83,33 @@ module.exports = class Socket extends EventHandler
         this._Socket.on('error', (Error) =>
         {
             Misc.Analyze('ClientError', { IP: this._Address, Error: Error })
+        })
+    }
+
+    On(...Args)
+    {
+        let Message
+        let Arg = [ ]
+
+        const Next = () =>
+        {
+            if (Arg.length === 1)
+                Arg.shift().apply(this, Message)
+            else if (Arg.length > 1)
+                Arg.shift().call(this, Message, Next)
+        }
+
+        super['on'](Args.shift(), (ID, PacketMessage, PacketID, Client) =>
+        {
+            Message = [ ]
+            Message.push(ID)
+            Message.push(PacketMessage)
+            Message.push(PacketID)
+            Message.push(Client)
+
+            Arg = Args.slice(0)
+
+            Next()
         })
     }
 

@@ -4,8 +4,8 @@ require('dotenv').config()
 
 global.Config =
 {
-    SERVER_STORAGE: './Storage/',
-    SERVER_STORAGE_TEMP: './Storage/Temp/',
+    SERVER_STORAGE: [ __dirname, '\\Storage\\' ].join(''),
+    SERVER_STORAGE_TEMP: [ __dirname, '\\Storage\\Temp\\' ].join(''),
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
     PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
@@ -13,8 +13,6 @@ global.Config =
 }
 
 const Net = require('net')
-const HTTP2 = require('http2')
-const FileSystem = require('fs')
 const MongoDB = require('mongodb')
 
 const Misc = require('./Handler/MiscHandler')
@@ -43,12 +41,12 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     global.DB = DataBase.db(process.env.DATABASE_NAME)
 
     //
-    // Server TCP
+    // Server Client
     //
 
-    const ServerTCP = Net.createServer()
+    const ServerClient = Net.createServer()
 
-    ServerTCP.on('connection', (Sock) =>
+    ServerClient.on('connection', (Sock) =>
     {
         const Client = new Socket(Sock)
 
@@ -57,96 +55,40 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         require('./Route/General')(Client)
         require('./Route/Authentication')(Client)
         require('./Route/Messenger')(Client)
+        require('./Route/Profile')(Client)
     })
 
-    ServerTCP.on('close', () => Misc.Analyze('ServerTCPClose'))
+    ServerClient.on('close', () => Misc.Analyze('ServerClientClose'))
 
-    ServerTCP.on('error', (Error) => Misc.Analyze('ServerTCPError', { Error: Error }))
+    ServerClient.on('error', (Error) => Misc.Analyze('ServerClientError', { Error: Error }))
 
-    ServerTCP.listen(process.env.SERVER_PORT, '0.0.0.0', () => Misc.Analyze('ServerTCPListen'))
+    ServerClient.listen(process.env.SERVER_CLIENT_PORT, '0.0.0.0', () => Misc.Analyze('ServerClientListen'))
 
     //
-    // Server HTTP2
+    // Server Push
     //
 
-    const ServerHTTP2 = HTTP2.createSecureServer({ key: FileSystem.readFileSync('./Storage/HttpPrivateKey.pem'), cert: FileSystem.readFileSync('./Storage/HttpPublicKey.pem') })
+    const ServerPush = Net.createServer()
 
-    ServerHTTP2.on('error', (Error) => Misc.Analyze('HTTP2Error', { Error: Error }))
-
-    ServerHTTP2.on('stream', (Client, Header) =>
+    ServerPush.on('connection', (Client) =>
     {
-        if (Header['key'] !== '123')
-        {
-            Client.end('Wrong Key')
-            return
-        }
+        const Push = new Socket(Client)
 
-        let Data = ''
+        Misc.Analyze('PushConnected', { IP: Push._Address })
 
-        Client.on('data', (BufferMessage) =>
-        {
-            console.log('Data Called')
-            Data += BufferMessage
-        })
-
-        Client.on('end', () =>
-        {
-            console.log('End Called')
-
-            let Result = ''
-
-            switch (Header[HTTP2.constants.HTTP2_HEADER_PATH])
-            {
-                case '/':
-                    Result = 'Default Path'
-                    break
-            }
-
-            Client.end(Result)
-        })
+        require('./Route/Push')(Push)
     })
 
-    ServerHTTP2.listen(process.env.HTTP2_PORT, '0.0.0.0', (Error) =>
-    {
-        if (Error)
-        {
-            Misc.Analyze('HTTP2Error', { Error: Error })
-            return
-        }
+    ServerPush.on('close', () => Misc.Analyze('ServerPushClose'))
 
-        Misc.Analyze('HTTP2Listen')
+    ServerPush.on('error', (Error) => Misc.Analyze('ServerPushError', { Error: Error }))
 
-        const Client = HTTP2.connect('https://localhost:37001', { ca: FileSystem.readFileSync('./Storage/HttpPublicKey.pem') })
-
-        Client.on('error', (err) => console.error(err))
-
-        const BufferMessage = Buffer.from(JSON.stringify('{ "Ali": 1010 }'))
-
-        const Request = Client.request({ ':method': 'POST', ':path': '/', 'Key': '123', 'Length': BufferMessage.length })
-
-        let Data = ''
-
-        Request.on('data', (chunk) =>
-        {
-            Data += chunk
-        })
-
-        Request.on('end', () =>
-        {
-            console.log(`Client Request Respone: ${Data}`)
-            Client.close()
-        })
-
-        Request.setEncoding('utf8')
-        Request.write(BufferMessage)
-        Request.end()
-    })
+    ServerPush.listen(process.env.SERVER_PUSH_PORT, '0.0.0.0', () => Misc.Analyze('ServerPushListen'))
 })
 
 /*
     Internal Result List:
     -1 : DataBase Warning
-    -2 : Request Warning
+    -2 : RateLimit Exceed
     -3 : Authentication Warning
-    -4 : RateLimit Exceed
 */

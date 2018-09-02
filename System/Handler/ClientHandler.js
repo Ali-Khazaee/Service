@@ -1,24 +1,35 @@
 'use strict'
 
 const Misc = require('./MiscHandler')
+const Push = require('./PushHandler')
 
 const ClientList = new Map()
 
 module.exports.Add = (Client) =>
 {
-    ClientList.set(Client._ID, Client)
+    DB.collection('client').insertOne({ ID: Client._ID, Owner: MongoID(Client.__Owner), ServerID: process.env.SERVER_ID, Time: Misc.Time() }, (Error) =>
+    {
+        if (Misc.IsDefined(Error))
+        {
+            Misc.Analyze('ClientHandler-Add', { Error: Error })
+            return
+        }
 
-    DB.collection('client').insertOne({ ID: Client._ID, Owner: MongoID(Client.__Owner), ServerID: process.env.SERVER_ID, Time: Misc.Time() })
+        ClientList.set(Client._ID, Client)
+    })
 }
 
 module.exports.Remove = (ID) =>
 {
-    ClientList.delete(ID)
-
-    DB.collection('client').deleteOne({ ID: ID }, (Error, Result) =>
+    DB.collection('client').deleteOne({ ID: ID }, (Error) =>
     {
         if (Misc.IsDefined(Error))
-            Misc.Analyze('ClientRemove', { Error: Error })
+        {
+            Misc.Analyze('ClientHandler-Remove', { Error: Error })
+            return
+        }
+
+        ClientList.delete(ID)
     })
 }
 
@@ -49,10 +60,11 @@ module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
             }
             else
             {
-                // FixMe
-
-                if (typeof CallBack === 'function')
-                    CallBack()
+                Push(Result[I].ServerID, PacketID, ID, Message).then((Result) =>
+                {
+                    if (Result && typeof CallBack === 'function')
+                        CallBack()
+                })
             }
         }
     })
