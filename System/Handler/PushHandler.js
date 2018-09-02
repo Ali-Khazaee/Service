@@ -10,6 +10,12 @@ const ClientHandler = require('./ClientHandler')
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
 
+const ServerList =
+[
+    { },
+    { ID: 1, URL: process.env.SERVER_1, Key: process.env.SERVER_1_KEY }
+]
+
 module.exports.Socket = class Socket extends EventEmitter
 {
     constructor(Client)
@@ -100,13 +106,7 @@ module.exports.Socket = class Socket extends EventEmitter
     }
 }
 
-const ServerList =
-[
-    { },
-    { ID: 1, URL: process.env.SERVER_1, Key: process.env.SERVER_1_KEY }
-]
-
-module.exports = (ServerID, PacketID, ID, Message) =>
+module.exports = (ServerID, ClientID, PacketID, Message) =>
 {
     return new Promise((resolve) =>
     {
@@ -114,12 +114,12 @@ module.exports = (ServerID, PacketID, ID, Message) =>
         {
             const Client = new Net.Socket().connect(process.env.CORE_PUSH_PORT, ServerList[ServerID].URL, () => Misc.Analyze('PushHandler-Connected', { ID: process.env.CORE_ID }))
 
-            const MessagePush = JSON.stringify({ PacketID: PacketID, ID: ID, Message: Message, Key: ServerList[ServerID].Key })
+            const MessagePush = JSON.stringify({ Client: ClientID, PacketID: PacketID, Message: Message })
             const BufferMessage = Buffer.alloc(HEADER_SIZE + MessagePush.length)
 
             BufferMessage.writeInt16LE(Packet.Push)
             BufferMessage.writeInt32LE(BufferMessage.length, 2)
-            BufferMessage.writeInt32LE(ID, 6)
+            BufferMessage.writeInt32LE(parseInt(ServerList[ServerID].Key), 6)
             BufferMessage.write(MessagePush, HEADER_SIZE)
 
             Client.write(BufferMessage)

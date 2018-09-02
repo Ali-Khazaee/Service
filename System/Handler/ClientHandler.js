@@ -33,7 +33,13 @@ module.exports.Remove = (ID) =>
     })
 }
 
-module.exports.Push = (Owner, PacketID, ID, Message, CallBack) =>
+module.exports.Send = (ClientID, PacketID, Message) =>
+{
+    if (ClientList.has(ClientID))
+        ClientList.get(ClientID).Send(PacketID, 0, Message)
+}
+
+module.exports.Push = (Owner, PacketID, Message, CallBack) =>
 {
     DB.collection('client').find({ Owner: MongoID(Owner) }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Error, Result) =>
     {
@@ -52,7 +58,7 @@ module.exports.Push = (Owner, PacketID, ID, Message, CallBack) =>
             {
                 if (ClientList.has(Result[I].ID))
                 {
-                    ClientList.get(Result[I].ID).Send(PacketID, ID, Message)
+                    ClientList.get(Result[I].ID).Send(PacketID, 0, Message)
 
                     if (typeof CallBack === 'function')
                         CallBack()
@@ -60,7 +66,7 @@ module.exports.Push = (Owner, PacketID, ID, Message, CallBack) =>
             }
             else
             {
-                Push(Result[I].ServerID, PacketID, ID, Message).then((Result) =>
+                Push(Result[I].ServerID, Result[I].ID, PacketID, Message).then((Result) =>
                 {
                     if (Result && typeof CallBack === 'function')
                         CallBack()
