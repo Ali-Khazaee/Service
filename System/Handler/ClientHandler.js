@@ -7,7 +7,7 @@ const ClientList = new Map()
 
 module.exports.Add = (Client) =>
 {
-    DB.collection('client').insertOne({ ID: Client._ID, Owner: MongoID(Client.__Owner), ServerID: process.env.SERVER_ID, Time: Misc.Time() }, (Error) =>
+    DB.collection('client').insertOne({ ID: Client._ID, Owner: MongoID(Client.__Owner), ServerID: process.env.CORE_ID, Time: Misc.Time() }, (Error) =>
     {
         if (Misc.IsDefined(Error))
         {
@@ -33,7 +33,7 @@ module.exports.Remove = (ID) =>
     })
 }
 
-module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
+module.exports.Push = (Owner, PacketID, ID, Message, CallBack) =>
 {
     DB.collection('client').find({ Owner: MongoID(Owner) }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Error, Result) =>
     {
@@ -48,7 +48,7 @@ module.exports.Send = (Owner, PacketID, ID, Message, CallBack) =>
 
         for (let I = 0; I < Result.length; I++)
         {
-            if (Result[I].ServerID === process.env.SERVER_ID)
+            if (Result[I].ServerID === process.env.CORE_ID)
             {
                 if (ClientList.has(Result[I].ID))
                 {

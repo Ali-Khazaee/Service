@@ -41,5 +41,7 @@ module.exports =
     PersonMessageDocument: 207, // Don't Implement
 
     Username: 400, // Implemented
-    Authentication: 401 // Implemented
+    Authentication: 401, // Implemented
+
+    Push: 700 //
 }

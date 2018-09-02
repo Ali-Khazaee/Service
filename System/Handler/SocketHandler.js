@@ -11,16 +11,16 @@ const HEADER_SIZE = 2 + 4 + 4
 
 module.exports = class Socket extends EventEmitter
 {
-    constructor(Sock)
+    constructor(Client)
     {
         super()
 
-        this._Socket = Sock
+        this._Socket = Client
         this._ID = Misc.RandomString(15)
-        this._Address = Sock.remoteAddress
+        this._Address = Client.remoteAddress
 
-        this._LastRequestID = -1
-        this._LastRequestLength = -1
+        this._RequestID = -1
+        this._RequestLength = -1
         this._Buffer = Buffer.alloc(0)
 
         this._Socket.on('data', (BufferCurrent) =>
@@ -40,35 +40,35 @@ module.exports = class Socket extends EventEmitter
             if (this._Buffer.length <= HEADER_SIZE)
                 return
 
-            if (this._LastRequestLength === -1)
+            if (this._RequestLength === -1)
             {
-                this._LastRequestID = this._Buffer.readUInt32LE(6)
-                this._LastRequestLength = this._Buffer.readUInt32LE(2)
+                this._RequestID = this._Buffer.readUInt32LE(6)
+                this._RequestLength = this._Buffer.readUInt32LE(2)
             }
 
-            while (this._Buffer.length >= this._LastRequestLength)
+            while (this._Buffer.length >= this._RequestLength)
             {
-                let RequestBuffer = Buffer.alloc(this._LastRequestLength)
+                let RequestBuffer = Buffer.alloc(this._RequestLength)
 
                 this._Buffer.copy(RequestBuffer)
                 this.OnMessage(RequestBuffer)
 
-                NewBuffer = Buffer.alloc(this._Buffer.length - this._LastRequestLength)
+                NewBuffer = Buffer.alloc(this._Buffer.length - this._RequestLength)
 
-                this._Buffer.copy(NewBuffer, 0, this._LastRequestLength)
+                this._Buffer.copy(NewBuffer, 0, this._RequestLength)
                 this._Buffer = NewBuffer
-                this._LastRequestLength = -1
-                this._LastRequestID = -1
+                this._RequestLength = -1
+                this._RequestID = -1
 
                 NewBuffer = null
 
                 if (this._Buffer.length <= HEADER_SIZE)
                     return
 
-                if (this._LastRequestLength === -1)
+                if (this._RequestLength === -1)
                 {
-                    this._LastRequestID = this._Buffer.readUInt32LE(6)
-                    this._LastRequestLength = this._Buffer.readUInt32LE(2)
+                    this._RequestID = this._Buffer.readUInt32LE(6)
+                    this._RequestLength = this._Buffer.readUInt32LE(2)
                 }
             }
         })
@@ -80,10 +80,7 @@ module.exports = class Socket extends EventEmitter
             Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
 
-        this._Socket.on('error', (Error) =>
-        {
-            Misc.Analyze('ClientError', { IP: this._Address, Error: Error })
-        })
+        this._Socket.on('error', (Error) => Misc.Analyze('ClientError', { IP: this._Address, Error: Error }))
     }
 
     On(...Args)
@@ -99,13 +96,13 @@ module.exports = class Socket extends EventEmitter
                 Arg.shift().call(this, Message, Next)
         }
 
-        super['on'](Args.shift(), (ID, PacketMessage, PacketID, Client) =>
+        super['on'](Args.shift(), (ID, PacketMessage, PacketID) =>
         {
             Message = [ ]
             Message.push(ID)
             Message.push(PacketMessage)
             Message.push(PacketID)
-            Message.push(Client)
+            Message.push(this)
 
             Arg = Args.slice(0)
 
@@ -117,7 +114,8 @@ module.exports = class Socket extends EventEmitter
     {
         Message = JSON.stringify(Message)
 
-        let BufferMessage = Buffer.alloc(HEADER_SIZE + Message.length)
+        const BufferMessage = Buffer.alloc(HEADER_SIZE + Message.length)
+
         BufferMessage.writeInt16LE(Packet)
         BufferMessage.writeInt32LE(BufferMessage.length, 2)
         BufferMessage.writeInt32LE(ID, 6)
@@ -129,18 +127,21 @@ module.exports = class Socket extends EventEmitter
     OnMessage(BufferMessage)
     {
         const PacketID = BufferMessage.readUInt16LE(0)
-        const ID = BufferMessage.readUInt16LE(4)
+        const ID = BufferMessage.readUInt32LE(6)
 
         if (this.Auth(PacketID))
-            return this.Send(PacketID, ID, { Result: -3 })
+        {
+            this.Send(PacketID, ID, { Result: -3 })
+            return
+        }
 
         try
         {
-            this.emit(PacketID, BufferMessage.readUInt32LE(6), JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), PacketID, this)
+            this.emit(PacketID, ID, JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), PacketID)
         }
         catch (Exception)
         {
-            Misc.Analyze('OnMessage', { Error: Exception })
+            Misc.Analyze('SocketHandler-OnMessage', { Error: Exception })
         }
     }
 
