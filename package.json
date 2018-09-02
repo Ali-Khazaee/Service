@@ -5,20 +5,23 @@
     "main": "./System/App.js",
     "author": "Ali.Khazaee",
     "license": "MIT",
-    "engines": {
+    "engines":
+    {
         "node": "10.9.0"
     },
-    "scripts": {
+    "scripts":
+    {
         "start": "node ./System/App.js"
     },
-    "dependencies": {
+    "dependencies":
+    {
         "dotenv": "^6.0.0",
         "mongodb": "^3.1.4",
         "nodemailer": "^4.6.8",
-        "request": "^2.88.0",
         "winston": "^3.0.0"
     },
-    "devDependencies": {
+    "devDependencies":
+    {
         "eslint-config-standard": "^11.0.0",
         "eslint-plugin-import": "^2.14.0",
         "eslint-plugin-node": "^6.0.1",
@@ -26,7 +29,8 @@
         "eslint-plugin-standard": "^3.1.0",
         "standard": "^11.0.1"
     },
-    "repository": {
+    "repository":
+    {
         "type": "git",
         "url": "https://github.com/ali-khazaee/service.git"
     }

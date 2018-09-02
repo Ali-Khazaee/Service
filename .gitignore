@@ -1,5 +1,5 @@
-.idea/
-.vscode/
 node_modules/
+.vscode/
+.idea/
 *.log
 .env

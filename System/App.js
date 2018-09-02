@@ -13,7 +13,8 @@ global.Config =
 }
 
 const Net = require('net')
-const HTTP = require('http')
+const HTTP2 = require('http2')
+const FileSystem = require('fs')
 const MongoDB = require('mongodb')
 
 const Misc = require('./Handler/MiscHandler')
@@ -41,9 +42,13 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     global.MongoID = MongoDB.ObjectID
     global.DB = DataBase.db(process.env.DATABASE_NAME)
 
-    const Server = Net.createServer()
+    //
+    // Server TCP
+    //
 
-    Server.on('connection', (Sock) =>
+    const ServerTCP = Net.createServer()
+
+    ServerTCP.on('connection', (Sock) =>
     {
         const Client = new Socket(Sock)
 
@@ -54,36 +59,87 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         require('./Route/Messenger')(Client)
     })
 
-    Server.on('close', () =>
-    {
-        Misc.Analyze('ServerClose')
-    })
+    ServerTCP.on('close', () => Misc.Analyze('ServerTCPClose'))
 
-    Server.on('error', (Error) =>
-    {
-        Misc.Analyze('ServerError', { Error: Error })
-    })
+    ServerTCP.on('error', (Error) => Misc.Analyze('ServerTCPError', { Error: Error }))
 
-    Server.listen(process.env.SERVER_PORT, '0.0.0.0', () =>
-    {
-        Misc.Analyze('ServerListen')
-    })
+    ServerTCP.listen(process.env.SERVER_PORT, '0.0.0.0', () => Misc.Analyze('ServerTCPListen'))
 
-    const ServerHTTP = HTTP.createServer((Request, Response) =>
-    {
-        // FixMe
-        Response.end()
-    })
+    //
+    // Server HTTP2
+    //
 
-    ServerHTTP.listen(process.env.HTTP_PORT, (Error) =>
+    const ServerHTTP2 = HTTP2.createSecureServer({ key: FileSystem.readFileSync('./Storage/HttpPrivateKey.pem'), cert: FileSystem.readFileSync('./Storage/HttpPublicKey.pem') })
+
+    ServerHTTP2.on('error', (Error) => Misc.Analyze('HTTP2Error', { Error: Error }))
+
+    ServerHTTP2.on('stream', (Client, Header) =>
     {
-        if (Error)
+        if (Header['key'] !== '123')
         {
-            Misc.Analyze('HTTPError', { Error: Error })
+            Client.end('Wrong Key')
             return
         }
 
-        Misc.Analyze('HTTPListen')
+        let Data = ''
+
+        Client.on('data', (BufferMessage) =>
+        {
+            console.log('Data Called')
+            Data += BufferMessage
+        })
+
+        Client.on('end', () =>
+        {
+            console.log('End Called')
+
+            let Result = ''
+
+            switch (Header[HTTP2.constants.HTTP2_HEADER_PATH])
+            {
+                case '/':
+                    Result = 'Default Path'
+                    break
+            }
+
+            Client.end(Result)
+        })
+    })
+
+    ServerHTTP2.listen(process.env.HTTP2_PORT, '0.0.0.0', (Error) =>
+    {
+        if (Error)
+        {
+            Misc.Analyze('HTTP2Error', { Error: Error })
+            return
+        }
+
+        Misc.Analyze('HTTP2Listen')
+
+        const Client = HTTP2.connect('https://localhost:37001', { ca: FileSystem.readFileSync('./Storage/HttpPublicKey.pem') })
+
+        Client.on('error', (err) => console.error(err))
+
+        const BufferMessage = Buffer.from(JSON.stringify('{ "Ali": 1010 }'))
+
+        const Request = Client.request({ ':method': 'POST', ':path': '/', 'Key': '123', 'Length': BufferMessage.length })
+
+        let Data = ''
+
+        Request.on('data', (chunk) =>
+        {
+            Data += chunk
+        })
+
+        Request.on('end', () =>
+        {
+            console.log(`Client Request Respone: ${Data}`)
+            Client.close()
+        })
+
+        Request.setEncoding('utf8')
+        Request.write(BufferMessage)
+        Request.end()
     })
 })
 
