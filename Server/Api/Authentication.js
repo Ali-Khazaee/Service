@@ -101,7 +101,7 @@ module.exports = (Client) =>
      * @Description Taeedie Sabte Nam Az Tarighe Phone Marhale Dovom
      *
      * @Param {string} Number
-     * @Param {string} Code
+     * @Param {int} Code
      *
      * Result: 1 >> Code ( Undefined, Invalid )
      * Result: 2 >> Number == Undefined
@@ -114,7 +114,7 @@ module.exports = (Client) =>
      */
     Client.On(Packet.PhoneSignUpVerify, RateLimit(120, 3600), (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5 || typeof Message.Code !== 'number')
             return Client.Send(Packet.PhoneSignUpVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
@@ -231,7 +231,7 @@ module.exports = (Client) =>
      * @Description Taeedie Vorod Az Tarighe Phone Marhale Dovom
      *
      * @Param {string} Number
-     * @Param {string} Code
+     * @Param {int} Code
      *
      * Result: 1 >> Code ( Undefined, Invalid )
      * Result: 2 >> Number == Undefined
@@ -242,7 +242,7 @@ module.exports = (Client) =>
      */
     Client.On(Packet.PhoneSignInVerify, RateLimit(120, 3600), (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5 || typeof Message.Code !== 'number')
             return Client.Send(Packet.PhoneSignInVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Number))
@@ -366,7 +366,7 @@ module.exports = (Client) =>
      * @Description Taeedie Sabte Nam Az Tarighe Email Marhale Dovom
      *
      * @Param {string} Email
-     * @Param {string} Code
+     * @Param {int} Code
      *
      * Result: 1 >> Code ( Undefined, Invalid )
      * Result: 2 >> Email == Undefined
@@ -379,7 +379,7 @@ module.exports = (Client) =>
      */
     Client.On(Packet.EmailSignUpVerify, RateLimit(240, 3600), (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5 || typeof Message.Code !== 'number')
             return Client.Send(Packet.EmailSignUpVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Email))
@@ -496,7 +496,7 @@ module.exports = (Client) =>
      * @Description Taeedie Vorod Az Tarighe Email Marhale Dovom
      *
      * @Param {string} Email
-     * @Param {string} Code
+     * @Param {int} Code
      *
      * Result: 1 >> Code ( Undefined, Invalid )
      * Result: 2 >> Email == Undefined
@@ -507,7 +507,7 @@ module.exports = (Client) =>
      */
     Client.On(Packet.EmailSignInVerify, RateLimit(240, 3600), (ID, Message) =>
     {
-        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5)
+        if (Misc.IsUndefined(Message.Code) || String(Message.Code).length !== 5 || typeof Message.Code !== 'number')
             return Client.Send(Packet.EmailSignInVerify, ID, { Result: 1 })
 
         if (Misc.IsUndefined(Message.Email))

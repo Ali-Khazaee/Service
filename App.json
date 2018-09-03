@@ -3,7 +3,7 @@
     [
         {
             "name": "Channel Server",
-            "script": "./System/App.js",
+            "script": "./Server/App.js",
             "exec_mode": "cluster",
             "instances": "max",
             "error_file": "./Storage/Error.log",

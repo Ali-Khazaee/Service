@@ -4,8 +4,8 @@ require('dotenv').config()
 
 global.Config =
 {
-    SERVER_STORAGE: [ __dirname, '\\Storage\\' ].join(''),
-    SERVER_STORAGE_TEMP: [ __dirname, '\\Storage\\Temp\\' ].join(''),
+    SERVER_STORAGE: `${__dirname}/Storage/`,
+    SERVER_STORAGE_TEMP: `${__dirname}/Storage/Temp/`,
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
     PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
@@ -53,10 +53,10 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 
         Misc.Analyze('ClientConnected', { IP: Client._Address })
 
-        require('./Route/General')(Client)
-        require('./Route/Authentication')(Client)
-        require('./Route/Messenger')(Client)
-        require('./Route/Profile')(Client)
+        require('./Api/General')(Client)
+        require('./Api/Authentication')(Client)
+        require('./Api/Messenger')(Client)
+        require('./Api/Profile')(Client)
     })
 
     ServerClient.on('close', () => Misc.Analyze('ServerClientClose'))
