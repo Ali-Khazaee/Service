@@ -31,13 +31,13 @@ module.exports =
     GroupMessageDelivery: 111, // Implemented
     GroupMessageDocument: 112, // Don't Implement
 
-    PersonList: 200, //
+    PersonList: 200, // Implemented
     PersonMessageSend: 201, // Implemented
     PersonMessageList: 202, // Implemented
-    PersonMessageInfo: 203, //
-    PersonMessageClear: 204, //
-    PersonMessageDelete: 205, //
-    PersonMessageDelivery: 206, //
+    PersonMessageInfo: 203, // Implemented
+    PersonMessageClear: 204, // Implemented
+    PersonMessageDelete: 205, // Implemented
+    PersonMessageDelivery: 206, // Implemented
     PersonMessageDocument: 207, // Don't Implement
 
     Username: 400, // Implemented

@@ -37,7 +37,7 @@ module.exports = (Count, Time) =>
                 return Next()
             }
 
-            Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -4 })
+            Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -2 })
         })
     }
 }
