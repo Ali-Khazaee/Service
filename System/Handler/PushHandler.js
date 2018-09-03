@@ -23,7 +23,6 @@ module.exports.Socket = class Socket extends EventEmitter
         super()
 
         this._Socket = Client
-        this._ID = Misc.RandomString(15)
         this._Address = Client.remoteAddress
 
         this._RequestID = -1
@@ -80,24 +79,28 @@ module.exports.Socket = class Socket extends EventEmitter
             }
         })
 
-        this._Socket.on('close', (HasError) =>
-        {
-            ClientHandler.Remove(this._ID)
-
-            Misc.Analyze('PushClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
-        })
+        this._Socket.on('close', (HasError) => Misc.Analyze('PushClose', { IP: this._Address, HasError: HasError ? 1 : 0 }))
 
         this._Socket.on('error', (Error) => Misc.Analyze('PushError', { IP: this._Address, Error: Error }))
     }
 
     OnMessage(BufferMessage)
     {
-        const PacketID = BufferMessage.readUInt16LE(0)
-        const ID = BufferMessage.readUInt32LE(6)
-
         try
         {
-            this.emit(PacketID, ID, JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), PacketID)
+            const ID = BufferMessage.readUInt32LE(6)
+            const PacketID = BufferMessage.readUInt16LE(0)
+            const Message = JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE))
+
+            switch (PacketID)
+            {
+                case Packet.Push:
+                    if (ID !== process.env.CORE_KEY)
+                        return
+
+                    ClientHandler.Send(Message.ClientID, Message.PacketID, Message.Message)
+                    break
+            }
         }
         catch (Exception)
         {

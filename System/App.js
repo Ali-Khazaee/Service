@@ -76,8 +76,6 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         const Client = new Push.Socket(Sock)
 
         Misc.Analyze('PushConnected', { IP: Client._Address })
-
-        require('./Route/Push')(Client)
     })
 
     ServerPush.on('close', () => Misc.Analyze('ServerPushClose'))
