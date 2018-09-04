@@ -2,14 +2,14 @@
     "name": "channel-service",
     "version": "0.1.0",
     "description": "Channel Service Powered By Ali Khazaee",
-    "main": "./Server/App.js",
+    "main": "./System/App.js",
     "author": "Ali.Khazaee",
     "license": "MIT",
     "engines": {
         "node": "10.9.0"
     },
     "scripts": {
-        "start": "node ./Server/App.js"
+        "start": "node ./System/App.js"
     },
     "dependencies": {
         "dotenv": "^6.0.0",

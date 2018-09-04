@@ -4,15 +4,16 @@ require('dotenv').config()
 
 global.Config =
 {
-    SERVER_STORAGE: `${__dirname}/Storage/`,
-    SERVER_STORAGE_TEMP: `${__dirname}/Storage/Temp/`,
+    SERVER_STORAGE: `${__dirname}/../Storage/`,
+    SERVER_STORAGE_TEMP: `${__dirname}/../Storage/Temp/`,
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
     PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
     PATTERN_IR_PHONE: /^\+989\d{9}$/
 }
 
-const Net = require('net')
+const TLS = require('tls')
+const FileSystem = require('fs')
 const MongoDB = require('mongodb')
 
 const Push = require('./Handler/PushHandler')
@@ -45,7 +46,14 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     // Server Client
     //
 
-    const ServerClient = Net.createServer()
+    const ServerOption =
+    {
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}ServerPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}ServerPublicKey.pem`),
+        rejectUnauthorized: true
+    }
+
+    const ServerClient = TLS.createServer(ServerOption)
 
     ServerClient.on('connection', (Sock) =>
     {
@@ -69,7 +77,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     // Server Push
     //
 
-    const ServerPush = Net.createServer()
+    const ServerPush = TLS.createServer(ServerOption)
 
     ServerPush.on('connection', (Sock) =>
     {
