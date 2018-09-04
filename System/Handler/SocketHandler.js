@@ -16,6 +16,7 @@ module.exports = class Socket extends EventEmitter
         super()
 
         this._Socket = Client
+        this._Socket.setTimeout(900000)
         this._ID = Misc.RandomString(15)
         this._Address = Client.remoteAddress
 
@@ -80,6 +81,13 @@ module.exports = class Socket extends EventEmitter
             Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
 
+        this._Socket.on('timeout', () =>
+        {
+            this._Socket.destroy()
+
+            Misc.Analyze('ClientTimeout', { IP: this._Address })
+        })
+
         this._Socket.on('error', (Error) => Misc.Analyze('ClientError', { IP: this._Address, Error: Error }))
     }
 
@@ -141,6 +149,7 @@ module.exports = class Socket extends EventEmitter
         }
         catch (Exception)
         {
+            this.Send(PacketID, ID, { Result: -4 })
             Misc.Analyze('SocketHandler-OnMessage', { Error: Exception })
         }
     }

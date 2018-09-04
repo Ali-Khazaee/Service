@@ -53,9 +53,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         rejectUnauthorized: true
     }
 
-    const ServerClient = TLS.createServer(ServerOption)
-
-    ServerClient.on('connection', (Sock) =>
+    const ServerClient = TLS.createServer(ServerOption, (Sock) =>
     {
         const Client = new Socket(Sock)
 
@@ -77,9 +75,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     // Server Push
     //
 
-    const ServerPush = TLS.createServer(ServerOption)
-
-    ServerPush.on('connection', (Sock) =>
+    const ServerPush = TLS.createServer(ServerOption, (Sock) =>
     {
         const Client = new Push.Socket(Sock)
 
@@ -98,4 +94,5 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     -1 : DataBase Warning
     -2 : RateLimit Exceed
     -3 : Authentication Warning
+    -4 : Invalid Message
 */

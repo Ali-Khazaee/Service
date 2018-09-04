@@ -5,8 +5,8 @@ const FileSystem = require('fs')
 
 const Misc = require('./MiscHandler')
 
-const AUTH_PRIVATE_KEY = FileSystem.readFileSync('./Storage/AuthPrivateKey.pem')
-const AUTH_PUBLIC_KEY = FileSystem.readFileSync('./Storage/AuthPublicKey.pem')
+const AUTH_PRIVATE_KEY = FileSystem.readFileSync(`${Config.SERVER_STORAGE}AuthPrivateKey.pem`)
+const AUTH_PUBLIC_KEY = FileSystem.readFileSync(`${Config.SERVER_STORAGE}AuthPublicKey.pem`)
 
 module.exports.AuthCreate = (Owner) =>
 {
