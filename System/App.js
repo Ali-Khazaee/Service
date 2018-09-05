@@ -4,8 +4,8 @@ require('dotenv').config()
 
 global.Config =
 {
-    SERVER_STORAGE: `${__dirname}/../Storage/`,
-    SERVER_STORAGE_TEMP: `${__dirname}/../Storage/Temp/`,
+    SERVER_STORAGE: `${__dirname}/../Storage`,
+    SERVER_STORAGE_TEMP: `${__dirname}/../Storage/Temp`,
 
     PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
     PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
@@ -48,8 +48,8 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 
     const ServerOption =
     {
-        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}ServerPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}ServerPublicKey.pem`),
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/ServerPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/ServerPublicKey.pem`),
         rejectUnauthorized: true
     }
 

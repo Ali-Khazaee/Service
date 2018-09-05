@@ -116,7 +116,7 @@ module.exports = (ServerID, ClientID, PacketID, Message) =>
     {
         try
         {
-            const Client = TLS.connect(process.env.CORE_PUSH_PORT, ServerList[ServerID].URL, { ca: [ FileSystem.readFileSync(`${Config.SERVER_STORAGE}ServerPublicKey.pem`) ] }, () => Misc.Analyze('PushHandler-Connected', { ID: process.env.CORE_ID }))
+            const Client = TLS.connect(process.env.CORE_PUSH_PORT, ServerList[ServerID].URL, { ca: [ FileSystem.readFileSync(`${Config.SERVER_STORAGE}/ServerPublicKey.pem`) ] }, () => Misc.Analyze('PushHandler-Connected', { ID: process.env.CORE_ID }))
 
             const MessagePush = JSON.stringify({ Client: ClientID, PacketID: PacketID, Message: Message })
             const BufferMessage = Buffer.alloc(HEADER_SIZE + MessagePush.length)
