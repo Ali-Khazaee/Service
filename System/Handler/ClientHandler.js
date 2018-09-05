@@ -41,7 +41,7 @@ module.exports.Send = (ClientID, PacketID, Message) =>
 
 module.exports.Push = (Owner, PacketID, Message, CallBack) =>
 {
-    DB.collection('client').find({ Owner: MongoID(Owner) }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Error, Result) =>
+    DB.collection('client').find({ Owner: Owner }).project({ _id: 0, ID: 1, ServerID: 1 }).toArray((Error, Result) =>
     {
         if (Misc.IsDefined(Error))
         {
