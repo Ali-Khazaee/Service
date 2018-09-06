@@ -1,21 +1,33 @@
 'use strict'
 
 const Misc = require('./MiscHandler')
-const EventHandler = require('../Model/DataType').EventHandler
+const Type = require('../Model/DataType').EventHandler
+
+const RateLimitList = new Map()
 
 module.exports = (Count, Time) =>
 {
     return (Message, Next) =>
     {
         let TimeCurrent = Misc.Time()
-        let Key = `${Message[EventHandler.Packet]}_${(Misc.IsValidID(Message[EventHandler.Client].__Owner) ? Message[EventHandler.Client].__Owner : Message[EventHandler.Client]._Address)}`
+        let Key = `${(Misc.IsDefined(Message[Type.Client].__Owner) ? Message[Type.Client].__Owner : Message[Type.Client]._Address)}`
+
+        if (RateLimitList.has(Key))
+        {
+            const Value = RateLimitList.get(Key)
+
+            return
+        }
+
+        RateLimitList.set(Key, new Map([ [ Message[Type.Packet], { Count: 3, Time: 10 } ] ]))
+        Next()
 
         DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 1, Time: 1, Count: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
                 Misc.Analyze('DBError', { Tag: 'RateLimit', Error: Error })
-                Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -1 })
+                Message[Type.Client].Send(Message[Type.Packet], Message[Type.ID], { Result: -1 })
                 return
             }
 
@@ -37,7 +49,7 @@ module.exports = (Count, Time) =>
                 return Next()
             }
 
-            Message[EventHandler.Client].Send(Message[EventHandler.Packet], Message[EventHandler.ID], { Result: -2 })
+            Message[Type.Client].Send(Message[Type.Packet], Message[Type.ID], { Result: -2 })
         })
     }
 }
