@@ -208,7 +208,10 @@ function UploadVoice(Path)
     })
 }
 
-module.exports.UploadFile = UploadFile
-module.exports.UploadVideo = UploadVideo
-module.exports.UploadImage = UploadImage
-module.exports.UploadVoice = UploadVoice
+module.exports =
+{
+    UploadFile,
+    UploadVideo,
+    UploadImage,
+    UploadVoice
+}
