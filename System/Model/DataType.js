@@ -13,8 +13,8 @@ module.exports =
     EventHandler:
     {
         ID: 0,
-        Client: 3,
-        Packet: 2
+        Packet: 2,
+        Client: 3
     },
 
     Message:

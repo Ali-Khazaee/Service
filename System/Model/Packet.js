@@ -40,6 +40,22 @@ module.exports =
     PersonMessageDelivery: 206, // Implemented
     PersonMessageDocument: 207, // Don't Implement
 
+    SocialFollow: 300, //
+    SocialUnfollow: 301, //
+    SocialFollowingList: 302, //
+    SocialFollowerList: 303, //
+
+    SocialPostList: 304, //
+    SocialPostLike: 305, //
+    SocialPostComment: 306, //
+    SocialPostCommentLike: 307, //
+    SocialPostCommentDislike: 308, //
+    SocialPostCommentReply: 309, //
+    SocialPostSave: 310, //
+    SocialPostDelete: 311, //
+    SocialPostReport: 312, //
+    SocialPostSeen: 313, //
+
     Username: 400, // Implemented
     Authentication: 401, // Implemented
 
