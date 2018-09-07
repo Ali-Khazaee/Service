@@ -3,7 +3,8 @@
 const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
 const RateLimit = require('../Handler/RateLimitHandler')
-const ClientManager = require('../Handler/ClientHandler')
+const ClientHandler = require('../Handler/ClientHandler')
+const RateLimitHandler = require('../Handler/RateLimitHandler')
 
 module.exports = (Client) =>
 {
@@ -73,7 +74,8 @@ module.exports = (Client) =>
 
             Client.__Owner = String(Result[0].Owner)
 
-            ClientManager.Add(Client)
+            ClientHandler.Add(Client)
+            RateLimitHandler.Load(Client)
 
             Client.Send(Packet.Authentication, ID, { Result: 0 })
 

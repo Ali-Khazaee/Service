@@ -5,6 +5,7 @@ const EventEmitter = require('events')
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
 const ClientHandler = require('./ClientHandler')
+const RateLimitHandler = require('./RateLimitHandler')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
@@ -23,6 +24,8 @@ module.exports = class Socket extends EventEmitter
         this._RequestID = -1
         this._RequestLength = -1
         this._Buffer = Buffer.alloc(0)
+
+        RateLimitHandler.Load(this)
 
         this._Socket.on('data', (BufferCurrent) =>
         {
@@ -77,6 +80,7 @@ module.exports = class Socket extends EventEmitter
         this._Socket.on('close', (HasError) =>
         {
             ClientHandler.Remove(this._ID)
+            RateLimitHandler.Save(this)
 
             Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })

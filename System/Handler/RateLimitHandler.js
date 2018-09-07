@@ -9,8 +9,8 @@ module.exports = (Count, Time) =>
 {
     return (Message, Next) =>
     {
-        let TimeCurrent = Misc.Time()
-        let Key = `${(Misc.IsDefined(Message[Type.Client].__Owner) ? Message[Type.Client].__Owner : Message[Type.Client]._Address)}`
+        const TimeCurrent = Misc.Time()
+        const Key = `${(Misc.IsDefined(Message[Type.Client].__Owner) ? Message[Type.Client].__Owner : Message[Type.Client]._Address)}`
 
         if (RateLimitList.has(Key))
         {
@@ -44,12 +44,38 @@ module.exports = (Count, Time) =>
     }
 }
 
-module.exports.Save = (Count, Time) =>
+module.exports.Save = (Client) =>
 {
+    const Key = `${(Misc.IsDefined(Client.__Owner) ? Client.__Owner : Client._Address)}`
 
+    if (RateLimitList.has(Key))
+        return
+
+    DB.collection('ratelimit').updateOne({ Key: Key }, { $set: { Key: Key, Data: JSON.stringify([...RateLimitList.get(Key)]) } }, { upsert: true })
 }
 
-module.exports.Load = (Count, Time) =>
+module.exports.Load = (Client) =>
 {
+    const Key = `${(Misc.IsDefined(Client.__Owner) ? Client.__Owner : Client._Address)}`
 
+    DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 0, Data: 1 }).toArray((Error, Result) =>
+    {
+        if (Misc.IsDefined(Error))
+        {
+            Misc.Analyze('DBError', { Tag: 'RateLimitHandler', Error: Error })
+            return
+        }
+
+        if (Misc.IsUndefined(Result[0]))
+            return
+
+        try
+        {
+            RateLimitList.set(Key, new Map(JSON.parse(Result[0].Data)))
+        }
+        catch (Exception)
+        {
+            Misc.Analyze('RateLimitHandler', { Error: Exception })
+        }
+    })
 }
