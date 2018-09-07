@@ -79,12 +79,7 @@ module.exports.Time = () =>
 
 module.exports.ReverseString = (Value) =>
 {
-    let NewValue = ''
-
-    for (let I = Value.length - 1; I >= 0; I--)
-        NewValue += Value[I]
-
-    return NewValue
+    return Value.split('').reverse().join('')
 }
 
 module.exports.IsInvalidJSON = (Message) =>
