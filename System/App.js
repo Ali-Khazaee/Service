@@ -88,6 +88,13 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     ServerPush.on('error', (Error) => Misc.Analyze('ServerPushError', { Error: Error }))
 
     ServerPush.listen(process.env.CORE_PUSH_PORT, '0.0.0.0', () => Misc.Analyze('ServerPushListen'))
+
+    setInterval(() =>
+    {
+        const Mem = process.memoryUsage()
+
+        Misc.Analyze('Performance', { RSS: Misc.Size(Mem.rss), Heap: Misc.Size(Mem.heapTotal), Used: Misc.Size(Mem.heapUsed), 'C++': Misc.Size(Mem.external) })
+    }, 2000)
 })
 
 /*

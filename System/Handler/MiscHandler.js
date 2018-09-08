@@ -172,3 +172,13 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
         this.Analyze('MailSuccess', { Info: Info })
     })
 }
+
+module.exports.Size = (Value) =>
+{
+    if (Value === 0)
+        return '0 Byte'
+
+    const I = Math.floor(Math.log(Value) / Math.log(1024))
+
+    return parseFloat((Value / Math.pow(1024, I)).toFixed(2)) + ' ' + [ 'Byte', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ][I]
+}
