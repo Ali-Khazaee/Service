@@ -119,4 +119,50 @@ module.exports = (Client) =>
             })
         })
     })
+
+    /**
+     * @Packet SocialFollowingList
+     *
+     * @Description Gereftane List e Following Haye Khod
+     *
+     * @Return Message: Array Object Az List Following Ha
+     */
+    Client.On(Packet.SocialFollowingList, RateLimit(120, 60), (ID) =>
+    {
+        DB.collection('follow').find({ Followed: MongoID(Client.__Owner) }).project({ _id: 0, Owner: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.SocialFollowingList, Error: Error })
+                return Client.Send(Packet.SocialFollowingList, ID, { Result: -1 })
+            }
+
+            Client.Send(Packet.SocialFollowingList, ID, { Result: 0, Message: Result })
+
+            Misc.Analyze('Request', { ID: Packet.SocialFollowingList, IP: Client._Address })
+        })
+    })
+
+    /**
+     * @Packet SocialFollowersList
+     *
+     * @Description Gereftane List e Follower Haye Khod
+     *
+     * @Return Message: Array Object Az List Follower Ha
+     */
+    Client.On(Packet.SocialFollowerList, RateLimit(120, 60), (ID) =>
+    {
+        DB.collection('follow').find({ Owner: MongoID(Client.__Owner) }).project({ _id: 0, Followed: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.SocialFollowerList, Error: Error })
+                return Client.Send(Packet.SocialFollowerList, ID, { Result: -1 })
+            }
+
+            Client.Send(Packet.SocialFollowerList, ID, { Result: 0, Message: Result })
+
+            Misc.Analyze('Request', { ID: Packet.SocialFollowerList, IP: Client._Address })
+        })
+    })
 }

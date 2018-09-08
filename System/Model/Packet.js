@@ -42,8 +42,8 @@ module.exports =
 
     SocialFollow: 300, // Implemented
     SocialUnFollow: 301, // Implemented
-    SocialFollowingList: 302, //
-    SocialFollowerList: 303, //
+    SocialFollowingList: 302, // Implemented
+    SocialFollowerList: 303, // Implemented
 
     SocialPostList: 304, //
     SocialPostLike: 305, //
