@@ -64,4 +64,59 @@ module.exports = (Client) =>
             })
         })
     })
+
+    /**
+     * @Packet SocialUnFollow
+     *
+     * @Description UnFollow Kardan Yek Person
+     *
+     * @Param {string} Who
+     *
+     * Result: 1 >> Who ( Undefined, Invalid )
+     * Result: 2 >> Who dosen't exists
+     * Result: 3 >> Person isn't followed at all
+     */
+    Client.On(Packet.SocialUnFollow, RateLimit(600, 3600), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
+            return Client.Send(Packet.SocialUnFollow, ID, { Result: 1 })
+
+        Message.Who = MongoID(Message.Who)
+
+        DB.collection('account').find({ _id: Message.Who }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: Packet.SocialUnFollow, Error: Error })
+                return Client.Send(Packet.SocialUnFollow, ID, { Result: -1 })
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return Client.Send(Packet.SocialUnFollow, ID, { Result: 2 })
+
+            DB.collection('follow').find({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            {
+                if (Misc.IsDefined(Error2))
+                {
+                    Misc.Analyze('DBError', { Tag: Packet.SocialUnFollow, Error: Error2 })
+                    return Client.Send(Packet.SocialUnFollow, ID, { Result: -1 })
+                }
+
+                if (Misc.IsUndefined(Result2[0]))
+                    return Client.Send(Packet.SocialUnFollow, ID, { Result: 3 })
+
+                DB.collection('follow').deleteOne({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }, (Error3) =>
+                {
+                    if (Misc.IsDefined(Error3))
+                    {
+                        Misc.Analyze('DBError', { Tag: Packet.SocialUnFollow, Error: Error3 })
+                        return Client.Send(Packet.SocialUnFollow, ID, { Result: -1 })
+                    }
+
+                    Client.Send(Packet.SocialUnFollow, ID, { Result: 0 })
+                    Misc.Analyze('Request', { ID: Packet.SocialUnFollow, IP: Client._Address })
+                })
+            })
+        })
+    })
 }

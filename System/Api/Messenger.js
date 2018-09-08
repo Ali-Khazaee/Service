@@ -22,7 +22,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Skip) || typeof Message.Skip !== 'number')
             Message.Skip = 0
 
-        DB.collection('message').aggregate([ { $match: { $and: [ { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] } }, { $sort: { Time: 1 } }, { $skip: Message.Skip }, { $limit: 10 }, { $group: { _id: '$From' } } ]).toArray((Error, Result) =>
+        DB.collection('message').aggregate([ { $match: { $and: [ { $or: [ { $and: [ { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }, { $and: [ { From: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] } ] } ] } }, { $sort: { Time: 1 } }, { $skip: Message.Skip }, { $limit: 10 }, { $group: { _id: '$From' } } ]).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -213,7 +213,7 @@ module.exports = (Client) =>
 
         Message.Who = MongoID(Message.Who)
 
-        DB.collection('message').updateOne({ $and: [ { From: Message.Who }, { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
+        DB.collection('message').updateMany({ $and: [ { From: Message.Who }, { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
         {
             if (Misc.IsDefined(Error))
             {
