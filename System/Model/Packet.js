@@ -40,8 +40,8 @@ module.exports =
     PersonMessageDelivery: 206, // Implemented
     PersonMessageDocument: 207, // Don't Implement
 
-    SocialFollow: 300, //
-    SocialUnfollow: 301, //
+    SocialFollow: 300, // Implemented
+    SocialUnFollow: 301, //
     SocialFollowingList: 302, //
     SocialFollowerList: 303, //
 
