@@ -28,7 +28,7 @@ module.exports = (Client) =>
 
         Message.Who = MongoID(Message.Who)
 
-        DB.collection('account').findOne({ _id: Message.Who }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('account').find({ _id: Message.Who }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -39,7 +39,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialFollow, ID, { Result: 3 })
 
-            DB.collection('follow').findOne({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('follow').find({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -83,7 +83,7 @@ module.exports = (Client) =>
 
         Message.Who = MongoID(Message.Who)
 
-        DB.collection('account').findOne({ _id: Message.Who }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('account').find({ _id: Message.Who }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -94,7 +94,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialUnFollow, ID, { Result: 2 })
 
-            DB.collection('follow').findOne({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('follow').find({ $and: [ { Owner: Message.Who }, { Followed: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -185,7 +185,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('account').findOne({ _id: Message.ID }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('account').find({ _id: Message.ID }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -230,7 +230,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -241,7 +241,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostLike, ID, { Result: 2 })
 
-            DB.collection('post_like').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_like').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -287,7 +287,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -298,7 +298,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostDisLike, ID, { Result: 2 })
 
-            DB.collection('post_like').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_like').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -342,7 +342,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -458,7 +458,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -502,7 +502,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -513,7 +513,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostView, ID, { Result: 2 })
 
-            DB.collection('post_view').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_view').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -565,7 +565,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -610,7 +610,7 @@ module.exports = (Client) =>
         Message.ID = MongoID(Message.ID)
 
         // FixMe Should we allow PostSender to delete comments as well?
-        DB.collection('post_comment').findOne({ $and: [ { _id: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post_comment').find({ $and: [ { _id: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -654,7 +654,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post_comment').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post_comment').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -665,7 +665,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostCommentLike, ID, { Result: 2 })
 
-            DB.collection('post_comment_like').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_comment_like').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -710,7 +710,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post_comment').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post_comment').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -721,7 +721,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostCommentDisLike, ID, { Result: 2 })
 
-            DB.collection('post_comment_like').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_comment_like').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -773,7 +773,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post_comment').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post_comment').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -818,7 +818,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -829,7 +829,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostBookmark, ID, { Result: 2 })
 
-            DB.collection('post_bookmark').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_bookmark').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
@@ -874,7 +874,7 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('post').findOne({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('post').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -885,7 +885,7 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.SocialPostUnBookmark, ID, { Result: 2 })
 
-            DB.collection('post_bookmark').findOne({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
+            DB.collection('post_bookmark').find({ $and: [ { ID: Message.ID }, { Owner: MongoID(Client.__Owner) } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
                 if (Misc.IsDefined(Error2))
                 {
