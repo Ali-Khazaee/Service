@@ -22,8 +22,7 @@ module.exports = (Client) =>
         if (Misc.IsUndefined(Message.Skip) || typeof Message.Skip !== 'number')
             Message.Skip = 0
 
-        // FixMe Handle limit properly
-        DB.collection('message').aggregate([ { $match: { $and: [ { $or: [ { $and: [ { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }, { $and: [ { From: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] } ] } ] } }, { $sort: { Time: 1 } }, { $skip: Message.Skip }/*, { $limit: 10 } */, { $group: { _id: '$From' } } ]).toArray((Error, Result) =>
+        DB.collection('message').aggregate([ { $match: { $and: [ { $or: [ { $and: [ { To: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }, { $and: [ { From: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] } ] } ] } }, { $sort: { Time: 1 } }, { $skip: Message.Skip }, { $limit: 10 }, { $group: { _id: '$From' } } ]).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -83,22 +82,22 @@ module.exports = (Client) =>
             if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
                 DataMessage.Reply = Message.ReplyID
 
-            DB.collection('message').insertOne(DataMessage, (Error, Result) =>
+            DB.collection('message').insertOne(DataMessage, (Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error2 })
                     return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
                 }
 
-                Client.Send(Packet.PersonMessageSend, ID, { Result: 0, ID: Result.insertedId, Time: Time })
+                Client.Send(Packet.PersonMessageSend, ID, { Result: 0, ID: Result2.insertedId, Time: Time })
 
                 ClientHandler.Push(Message.To, Packet.PersonMessageSend, ID, DataMessage, () =>
                 {
-                    DB.collection('message').updateOne({ _id: Result.insertedId }, { $set: { Delivery: Time } }, (Error) =>
+                    DB.collection('message').updateOne({ _id: Result2.insertedId }, { $set: { Delivery: Time } }, (Error3) =>
                     {
-                        if (Misc.IsDefined(Error))
-                            Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error })
+                        if (Misc.IsDefined(Error3))
+                            Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error3 })
                     })
                 })
 
@@ -141,10 +140,10 @@ module.exports = (Client) =>
             {
                 const Time = Misc.TimeMili()
 
-                DB.collection('message').updateOne({ $and: [ { _id: Result[I]._id }, { From: Message.Who }, { Delivery: { $exists: false } } ] }, { $set: { Delivery: Time } }, (Error) =>
+                DB.collection('message').updateOne({ $and: [ { _id: Result[I]._id }, { From: Message.Who }, { Delivery: { $exists: false } } ] }, { $set: { Delivery: Time } }, (Error3) =>
                 {
-                    if (Misc.IsDefined(Error))
-                        return Misc.Analyze('DBError', { Tag: Packet.PersonMessageList, Error: Error })
+                    if (Misc.IsDefined(Error3))
+                        return Misc.Analyze('DBError', { Tag: Packet.PersonMessageList, Error: Error3 })
 
                     ClientHandler.Push(Message.Who, Packet.PersonMessageDelivery, ID, { _id: Result[I]._id, Delivery: Time })
                 })
@@ -256,11 +255,11 @@ module.exports = (Client) =>
             if (Misc.IsUndefined(Result[0]))
                 return Client.Send(Packet.PersonMessageDelete, ID, { Result: 2 })
 
-            DB.collection('message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
+            DB.collection('message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageDelete, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageDelete, Error: Error2 })
                     return Client.Send(Packet.PersonMessageDelete, ID, { Result: -1 })
                 }
 
@@ -303,11 +302,11 @@ module.exports = (Client) =>
 
             const Time = Misc.TimeMili()
 
-            DB.collection('message').updateOne({ _id: Message.ID }, { $set: { Delivery: Time } }, (Error) =>
+            DB.collection('message').updateOne({ _id: Message.ID }, { $set: { Delivery: Time } }, (Error2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageDelivery, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageDelivery, Error: Error2 })
                     return Client.Send(Packet.PersonMessageDelivery, ID, { Result: -1 })
                 }
 
@@ -348,23 +347,23 @@ module.exports = (Client) =>
             if (Result > 100)
                 return Client.Send(Packet.GroupCreate, ID, { Result: 2 })
 
-            DB.collection('group').insertOne({ Name: Message.Name, Owner: MongoID(Client.__Owner) }, (Error, Result) =>
+            DB.collection('group').insertOne({ Name: Message.Name, Owner: MongoID(Client.__Owner) }, (Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error2 })
                     return Client.Send(Packet.GroupCreate, ID, { Result: -1 })
                 }
 
-                DB.collection('group_member').insertOne({ Group: Result.insertedId, Member: MongoID(Client.__Owner) }, (Error) =>
+                DB.collection('group_member').insertOne({ Group: Result2.insertedId, Member: MongoID(Client.__Owner) }, (Error3) =>
                 {
-                    if (Misc.IsDefined(Error))
+                    if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error })
+                        Misc.Analyze('DBError', { Tag: Packet.GroupCreate, Error: Error3 })
                         return Client.Send(Packet.GroupCreate, ID, { Result: -1 })
                     }
 
-                    Client.Send(Packet.GroupCreate, ID, { Result: 0, ID: Result.insertedId })
+                    Client.Send(Packet.GroupCreate, ID, { Result: 0, ID: Result2.insertedId })
 
                     Misc.Analyze('Request', { ID: Packet.GroupCreate, IP: Client._Address })
                 })
@@ -396,11 +395,11 @@ module.exports = (Client) =>
                 return Client.Send(Packet.GroupDelete, ID, { Result: -1 })
             }
 
-            DB.collection('group_message').updateMany({ $and: [ { Group: Message.ID }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
+            DB.collection('group_message').updateMany({ $and: [ { Group: Message.ID }, { Delete: { $exists: false } } ] }, { $set: { Delete: Misc.TimeMili() } }, (Error2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error2 })
                     return Client.Send(Packet.GroupDelete, ID, { Result: -1 })
                 }
 
@@ -410,24 +409,24 @@ module.exports = (Client) =>
             })
 
             // FixMe Do it through a room
-            DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error, Result) =>
+            DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
-                    return Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error })
+                if (Misc.IsDefined(Error2))
+                    return Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error2 })
 
-                if (Misc.IsUndefined(Result[0]))
+                if (Misc.IsUndefined(Result2[0]))
                     return
 
-                for (let I = 0; I < Result.length; I++)
+                for (let I = 0; I < Result2.length; I++)
                 {
-                    if (String(Result[I].Member) !== Client.__Owner)
-                        ClientHandler.Push(Result[I].Member, Packet.GroupDelete, ID, { _id: Message.ID })
+                    if (String(Result2[I].Member) !== Client.__Owner)
+                        ClientHandler.Push(Result2[I].Member, Packet.GroupDelete, ID, { _id: Message.ID })
                 }
 
-                DB.collection('group_member').deleteMany({ Group: Message.ID }, (Error) =>
+                DB.collection('group_member').deleteMany({ Group: Message.ID }, (Error3) =>
                 {
-                    if (Misc.IsDefined(Error))
-                        return Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error })
+                    if (Misc.IsDefined(Error3))
+                        return Misc.Analyze('DBError', { Tag: Packet.GroupDelete, Error: Error3 })
                 })
             })
         })
@@ -469,18 +468,18 @@ module.exports = (Client) =>
             Client.Send(Packet.GroupRename, ID, { Result: 0 })
 
             // FixMe Do it through a room
-            DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error, Result) =>
+            DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
-                    return Misc.Analyze('DBError', { Tag: Packet.GroupRename, Error: Error })
+                if (Misc.IsDefined(Error2))
+                    return Misc.Analyze('DBError', { Tag: Packet.GroupRename, Error: Error2 })
 
-                if (Misc.IsUndefined(Result[0]))
+                if (Misc.IsUndefined(Result2[0]))
                     return
 
-                for (let I = 0; I < Result.length; I++)
+                for (let I = 0; I < Result2.length; I++)
                 {
-                    if (String(Result[I].Member) !== Client.__Owner)
-                        ClientHandler.Push(Result[I].Member, Packet.GroupRename, ID, { _id: Message.ID, Name: Message.Name })
+                    if (String(Result2[I].Member) !== Client.__Owner)
+                        ClientHandler.Push(Result2[I].Member, Packet.GroupRename, ID, { _id: Message.ID, Name: Message.Name })
                 }
             })
 
@@ -495,10 +494,9 @@ module.exports = (Client) =>
      *
      * @Return Message: Array Object Az List Group Ha
      */
-    Client.On(Packet.GroupList, RateLimit(120, 60), (ID, Message) =>
+    Client.On(Packet.GroupList, RateLimit(120, 60), (ID) =>
     {
-        // FixMe Handle limit properly
-        DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).toArray((Error, Result) =>
+        DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
         {
             if (Misc.IsDefined(Error))
             {
@@ -552,51 +550,51 @@ module.exports = (Client) =>
             if (Message.Who === Client.__Owner)
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 4 })
 
-            DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+            DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error2 })
                     return Client.Send(Packet.GroupMemberAdd, ID, { Result: -1 })
                 }
 
-                if (Misc.IsUndefined(Result[0]))
+                if (Misc.IsUndefined(Result2[0]))
                     return Client.Send(Packet.GroupMemberAdd, ID, { Result: 5 })
 
-                DB.collection('group_member').find({ $and: [ { Group: Message.ID }, { Member: Message.Who } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+                DB.collection('group_member').find({ $and: [ { Group: Message.ID }, { Member: Message.Who } ] }).project({ _id: 1 }).toArray((Error3, Result3) =>
                 {
-                    if (Misc.IsDefined(Error))
+                    if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error })
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error3 })
                         return Client.Send(Packet.GroupMemberAdd, ID, { Result: -1 })
                     }
 
-                    if (Misc.IsDefined(Result[0]))
+                    if (Misc.IsDefined(Result3[0]))
                         return Client.Send(Packet.GroupMemberAdd, ID, { Result: 6 })
 
-                    DB.collection('group_member').insertOne({ Group: Message.ID, Member: Message.Who }, (Error) =>
+                    DB.collection('group_member').insertOne({ Group: Message.ID, Member: Message.Who }, (Error3) =>
                     {
-                        if (Misc.IsDefined(Error))
+                        if (Misc.IsDefined(Error3))
                         {
-                            Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error })
+                            Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error3 })
                             return Client.Send(Packet.GroupMemberAdd, ID, { Result: -1 })
                         }
 
                         Client.Send(Packet.GroupMemberAdd, ID, { Result: 0 })
 
                         // FixMe Do it through a room
-                        DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error, Result) =>
+                        DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error4, Result4) =>
                         {
-                            if (Misc.IsDefined(Error))
-                                return Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error })
+                            if (Misc.IsDefined(Error4))
+                                return Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error4 })
 
-                            if (Misc.IsUndefined(Result[0]))
+                            if (Misc.IsUndefined(Result4[0]))
                                 return
 
-                            for (let I = 0; I < Result.length; I++)
+                            for (let I = 0; I < Result4.length; I++)
                             {
-                                if (String(Result[I].Member) !== Client.__Owner)
-                                    ClientHandler.Push(Result[I].Member, Packet.GroupMemberAdd, ID, { _id: Message.ID, Member: Message.Who, AddedBy: MongoID(Client.__Owner) })
+                                if (String(Result4[I].Member) !== Client.__Owner)
+                                    ClientHandler.Push(Result4[I].Member, Packet.GroupMemberAdd, ID, { _id: Message.ID, Member: Message.Who, AddedBy: MongoID(Client.__Owner) })
                             }
                         })
 
@@ -646,40 +644,40 @@ module.exports = (Client) =>
             if (Message.Who === Client.__Owner)
                 return Client.Send(Packet.GroupMemberAdd, ID, { Result: 4 })
 
-            DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+            DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error2 })
                     return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
                 }
 
-                if (Misc.IsUndefined(Result[0]))
+                if (Misc.IsUndefined(Result2[0]))
                     return Client.Send(Packet.GroupMemberRemove, ID, { Result: 5 })
 
-                DB.collection('group_member').deleteOne({ $and: [ { Group: Message.ID }, { Member: Message.Who } ] }, (Error) =>
+                DB.collection('group_member').deleteOne({ $and: [ { Group: Message.ID }, { Member: Message.Who } ] }, (Error3) =>
                 {
-                    if (Misc.IsDefined(Error))
+                    if (Misc.IsDefined(Error3))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error })
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMemberRemove, Error: Error3 })
                         return Client.Send(Packet.GroupMemberRemove, ID, { Result: -1 })
                     }
 
                     Client.Send(Packet.GroupMemberRemove, ID, { Result: 0 })
 
                     // FixMe Do it through a room
-                    DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error, Result) =>
+                    DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error4, Result4) =>
                     {
-                        if (Misc.IsDefined(Error))
-                            return Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error })
+                        if (Misc.IsDefined(Error4))
+                            return Misc.Analyze('DBError', { Tag: Packet.GroupMemberAdd, Error: Error4 })
 
-                        if (Misc.IsUndefined(Result[0]))
+                        if (Misc.IsUndefined(Result4[0]))
                             return
 
-                        for (let I = 0; I < Result.length; I++)
+                        for (let I = 0; I < Result4.length; I++)
                         {
-                            if (String(Result[I].Member) !== Client.__Owner)
-                                ClientHandler.Push(Result[I].Member, Packet.GroupMemberAdd, ID, { _id: Message.ID, Member: Message.Who, RemovedBy: MongoID(Client.__Owner) })
+                            if (String(Result4[I].Member) !== Client.__Owner)
+                                ClientHandler.Push(Result4[I].Member, Packet.GroupMemberAdd, ID, { _id: Message.ID, Member: Message.Who, RemovedBy: MongoID(Client.__Owner) })
                         }
                     })
 
@@ -718,15 +716,15 @@ module.exports = (Client) =>
 
         Message.ID = MongoID(Message.ID)
 
-        DB.collection('group').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+        DB.collection('group').find({ $and: [ { _id: Message.ID }, { Delete: { $exists: false } } ] }).limit(1).project({ _id: 1 }).toArray((Error2, Result2) =>
         {
-            if (Misc.IsDefined(Error))
+            if (Misc.IsDefined(Error2))
             {
-                Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error })
+                Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error2 })
                 return Client.Send(Packet.GroupMessageSend, ID, { Result: -1 })
             }
 
-            if (Misc.IsUndefined(Result[0]))
+            if (Misc.IsUndefined(Result2[0]))
                 return Client.Send(Packet.GroupMessageSend, ID, { Result: 3 })
 
             const Time = Misc.TimeMili()
@@ -735,35 +733,35 @@ module.exports = (Client) =>
             if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
                 DataMessage.Reply = Message.ReplyID
 
-            DB.collection('group_message').insertOne(DataMessage, (Error, Result) =>
+            DB.collection('group_message').insertOne(DataMessage, (Error4, Result4) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error4))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error4 })
                     return Client.Send(Packet.GroupMessageSend, ID, { Result: -1 })
                 }
 
-                Client.Send(Packet.GroupMessageSend, ID, { Result: 0, _id: Result.insertedId, Time: Time })
+                Client.Send(Packet.GroupMessageSend, ID, { Result: 0, _id: Result4.insertedId, Time: Time })
 
                 // FixMe Do it through a room
-                DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error, Result) =>
+                DB.collection('group_member').find({ Group: Message.ID }).project({ Member: 1 }).toArray((Error5, Result5) =>
                 {
-                    if (Misc.IsDefined(Error))
-                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error })
+                    if (Misc.IsDefined(Error5))
+                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error5 })
 
-                    if (Misc.IsUndefined(Result[0]))
+                    if (Misc.IsUndefined(Result5[0]))
                         return
 
-                    for (let I = 0; I < Result.length; I++)
+                    for (let I = 0; I < Result5.length; I++)
                     {
-                        if (String(Result[I].Member) !== Client.__Owner)
+                        if (String(Result5[I].Member) !== Client.__Owner)
                         {
-                            ClientHandler.Push(Result[I].Member, Packet.GroupMemberAdd, ID, DataMessage, () =>
+                            ClientHandler.Push(Result5[I].Member, Packet.GroupMemberAdd, ID, DataMessage, () =>
                             {
-                                DB.collection('group_message').updateOne({ $and: [{ _id: Result.insertedId }, { Delivery: { $exists: false } }] }, { $set: { Delivery: Misc.TimeMili() } }, (Error) =>
+                                DB.collection('group_message').updateOne({ $and: [{ _id: Result4.insertedId }, { Delivery: { $exists: false } }] }, { $set: { Delivery: Misc.TimeMili() } }, (Error6) =>
                                 {
-                                    if (Misc.IsDefined(Error))
-                                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error })
+                                    if (Misc.IsDefined(Error6))
+                                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageSend, Error: Error6 })
                                 })
                             })
                         }
@@ -809,10 +807,10 @@ module.exports = (Client) =>
             {
                 const Time = Misc.TimeMili()
 
-                DB.collection('group_message').updateOne({ $and: [ { _id: Result[I]._id }, { From: Result[I].From }, { Delivery: { $exists: false } } ] }, { $set: { Delivery: Time } }, (Error) =>
+                DB.collection('group_message').updateOne({ $and: [ { _id: Result[I]._id }, { From: Result[I].From }, { Delivery: { $exists: false } } ] }, { $set: { Delivery: Time } }, (Error3) =>
                 {
-                    if (Misc.IsDefined(Error))
-                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageList, Error: Error })
+                    if (Misc.IsDefined(Error3))
+                        return Misc.Analyze('DBError', { Tag: Packet.GroupMessageList, Error: Error3 })
 
                     ClientHandler.Push(Result[I].From, Packet.GroupMessageDelivery, ID, { _id: Result[I]._id, Delivery: Time })
                 })
@@ -903,22 +901,22 @@ module.exports = (Client) =>
 
             if (String(Result[0].Owner) === Client.__Owner)
             {
-                DB.collection('group_message').find({ $and: [ { _id: Message.ID }, { Group: Message.Group }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+                DB.collection('group_message').find({ $and: [ { _id: Message.ID }, { Group: Message.Group }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
                 {
-                    if (Misc.IsDefined(Error))
+                    if (Misc.IsDefined(Error2))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
                         return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
                     }
 
-                    if (Misc.IsUndefined(Result[0]))
+                    if (Misc.IsUndefined(Result2[0]))
                         return Client.Send(Packet.GroupMessageDelete, ID, { Result: 4 })
 
-                    DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
+                    DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error3) =>
                     {
-                        if (Misc.IsDefined(Error))
+                        if (Misc.IsDefined(Error3))
                         {
-                            Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                            Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error3 })
                             return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
                         }
 
@@ -930,22 +928,22 @@ module.exports = (Client) =>
             }
             else
             {
-                DB.collection('group_message').find({ $and: [ { _id: Message.ID }, { Group: Message.Group }, { From: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
+                DB.collection('group_message').find({ $and: [ { _id: Message.ID }, { Group: Message.Group }, { From: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error2, Result2) =>
                 {
-                    if (Misc.IsDefined(Error))
+                    if (Misc.IsDefined(Error2))
                     {
-                        Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                        Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
                         return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
                     }
 
-                    if (Misc.IsUndefined(Result[0]))
+                    if (Misc.IsUndefined(Result2[0]))
                         return Client.Send(Packet.GroupMessageDelete, ID, { Result: 4 })
 
-                    DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error) =>
+                    DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delete: Misc.TimeMili() } }, (Error3) =>
                     {
-                        if (Misc.IsDefined(Error))
+                        if (Misc.IsDefined(Error3))
                         {
-                            Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                            Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error3 })
                             return Client.Send(Packet.GroupMessageDelete, ID, { Result: -1 })
                         }
 
@@ -957,18 +955,18 @@ module.exports = (Client) =>
             }
 
             // FixMe Do it through a room
-            DB.collection('group_member').find({ Group: Message.Group }).project({ Member: 1 }).toArray((Error, Result) =>
+            DB.collection('group_member').find({ Group: Message.Group }).project({ Member: 1 }).toArray((Error2, Result2) =>
             {
-                if (Misc.IsDefined(Error))
-                    return Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error })
+                if (Misc.IsDefined(Error2))
+                    return Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelete, Error: Error2 })
 
-                if (Misc.IsUndefined(Result[0]))
+                if (Misc.IsUndefined(Result2[0]))
                     return
 
-                for (let I = 0; I < Result.length; I++)
+                for (let I = 0; I < Result2.length; I++)
                 {
-                    if (String(Result[I].Member) !== Client.__Owner)
-                        ClientHandler.Push(Result[I].Member, Packet.GroupMessageDelete, ID, { _id: Message.ID })
+                    if (String(Result2[I].Member) !== Client.__Owner)
+                        ClientHandler.Push(Result2[I].Member, Packet.GroupMessageDelete, ID, { _id: Message.ID })
                 }
             })
         })
@@ -1004,11 +1002,11 @@ module.exports = (Client) =>
 
             const Time = Misc.TimeMili()
 
-            DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delivery: Time } }, (Error) =>
+            DB.collection('group_message').updateOne({ _id: Message.ID }, { $set: { Delivery: Time } }, (Error2) =>
             {
-                if (Misc.IsDefined(Error))
+                if (Misc.IsDefined(Error2))
                 {
-                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelivery, Error: Error })
+                    Misc.Analyze('DBError', { Tag: Packet.GroupMessageDelivery, Error: Error2 })
                     return Client.Send(Packet.GroupMessageDelivery, ID, { Result: -1 })
                 }
 

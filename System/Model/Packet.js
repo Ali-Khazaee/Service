@@ -45,19 +45,16 @@ module.exports =
     SocialFollowingList: 302, // Implemented
     SocialFollowerList: 303, // Implemented
 
-    SocialPostList: 304, // Implemented
-    SocialPostLike: 305, // Implemented
-    SocialPostDisLike: 306, // Implemented
-    SocialPostDelete: 307, // Implemented
-    SocialPostReport: 308, // Implemented
-    SocialPostView: 309, // Implemented
-    SocialPostComment: 310, // Implemented
-    SocialPostCommentDelete: 311, // Implemented
-    SocialPostCommentLike: 312, // Implemented
-    SocialPostCommentDisLike: 313, // Implemented
-    SocialPostCommentReply: 314, // Implemented
-    SocialPostBookmark: 315, // Implemented
-    SocialPostUnBookmark: 316, // Implemented
+    SocialPostList: 304, //
+    SocialPostLike: 305, //
+    SocialPostComment: 306, //
+    SocialPostCommentLike: 307, //
+    SocialPostCommentDislike: 308, //
+    SocialPostCommentReply: 309, //
+    SocialPostSave: 310, //
+    SocialPostDelete: 311, //
+    SocialPostReport: 312, //
+    SocialPostSeen: 313, //
 
     Username: 400, // Implemented
     Authentication: 401, // Implemented
