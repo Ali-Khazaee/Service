@@ -46,18 +46,17 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     // Server Client
     //
 
-    const ServerOption =
+    const ServerSocketOption =
     {
-        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/ServerPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/ServerPublicKey.pem`),
-        rejectUnauthorized: true
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPublicKey.pem`)
     }
 
-    const ServerClient = TLS.createServer(ServerOption, (Sock) =>
+    const ServerSocket = TLS.createServer(ServerSocketOption, (Sock) =>
     {
         const Client = new Socket(Sock)
 
-        Misc.Analyze('ClientConnected', { IP: Client._Address })
+        Misc.Analyze('SocketConnected', { IP: Client._Address })
 
         require('./Api/General')(Client)
         require('./Api/Authentication')(Client)
@@ -65,21 +64,29 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         require('./Api/Profile')(Client)
     })
 
-    ServerClient.on('close', () => Misc.Analyze('ServerClientClose'))
+    ServerSocket.on('close', () => Misc.Analyze('ServerSocketClose'))
 
-    ServerClient.on('error', (Error) => Misc.Analyze('ServerClientError', { Error: Error }))
+    ServerSocket.on('error', (Error) => Misc.Analyze('ServerSocketError', { Error: Error }))
 
-    ServerClient.listen(process.env.CORE_CLIENT_PORT, '0.0.0.0', () => Misc.Analyze('ServerClientListen'))
+    ServerSocket.listen(process.env.CORE_CLIENT_PORT, '0.0.0.0', () => Misc.Analyze('ServerSocketListen'))
 
     //
     // Server Push
     //
 
-    const ServerPush = TLS.createServer(ServerOption, (Sock) =>
+    const ServerPushOption =
     {
-        const Client = new Push.Socket(Sock)
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/PushPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/PushPublicKey.pem`)
+    }
+
+    const ServerPush = TLS.createServer(ServerPushOption, (Sock) =>
+    {
+        const Client = new Push(Sock)
 
         Misc.Analyze('PushConnected', { IP: Client._Address })
+
+        require('./Api/Push')(Client)
     })
 
     ServerPush.on('close', () => Misc.Analyze('ServerPushClose'))
@@ -93,7 +100,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         const Mem = process.memoryUsage()
 
         Misc.Analyze('Performance', { RSS: Misc.Size(Mem.rss), Heap: Misc.Size(Mem.heapTotal), Used: Misc.Size(Mem.heapUsed), 'C++': Misc.Size(Mem.external) })
-    }, 2000)
+    }, 1000)
 })
 
 /*

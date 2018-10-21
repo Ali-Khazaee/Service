@@ -9,10 +9,9 @@ const Logger = Winston.createLogger(
     transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/AppDebug.log' }) ]
 })
 
-module.exports.Analyze = (Tag, Message) =>
+module.exports.Analyze = (Tag, Message = { }) =>
 {
-    Message = Message || { }
-    Message.CreatedTime = this.Time()
+    Message.T = this.Time()
 
     // FixMe
 
@@ -176,9 +175,9 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
 module.exports.Size = (Value) =>
 {
     if (Value === 0)
-        return '0 Byte'
+        return '0 B'
 
     const I = Math.floor(Math.log(Value) / Math.log(1024))
 
-    return parseFloat((Value / Math.pow(1024, I)).toFixed(2)) + ' ' + [ 'Byte', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ][I]
+    return parseFloat((Value / Math.pow(1024, I)).toFixed(2)) + ' ' + [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ][I]
 }
