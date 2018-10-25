@@ -82,4 +82,21 @@ module.exports = (Client) =>
             Misc.Analyze('Request', { ID: Packet.Authentication, IP: Client._Address })
         })
     })
+
+    /**
+     * @Packet ExChange
+     *
+     * @Description Sabt e Hoviat Roye Connection
+     *
+     * @Param {string} Key
+     *
+     * Result: 1 >> Key ( Undefined )
+     * Result: 2 >> Key Doesn't exist
+     * Result: 3 >> Already Authenticated
+     */
+    Client.On(Packet.ExChange, RateLimit(1800, 3600), (ID, Message) =>
+    {
+        if (Misc.IsUndefined(Message.Key))
+            return Client.Send(Packet.Authentication, ID, { Result: 1 })
+    })
 }

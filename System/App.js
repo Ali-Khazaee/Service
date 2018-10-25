@@ -49,7 +49,10 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     const ServerSocketOption =
     {
         key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPublicKey.pem`)
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPublicKey.pem`),
+        dhparam: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketDHKey.pem`),
+        ciphers: 'ECDHE-ECDSA-AES128-GCM-SHA256',
+        honorCipherOrder: true
     }
 
     const ServerSocket = TLS.createServer(ServerSocketOption, (Sock) =>

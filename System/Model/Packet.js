@@ -58,6 +58,7 @@ module.exports =
 
     Username: 400, // Implemented
     Authentication: 401, // Implemented
+    ExChange: 402, // Implemented
 
     Push: 700 //
 }

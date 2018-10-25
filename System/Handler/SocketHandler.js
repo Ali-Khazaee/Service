@@ -23,7 +23,7 @@ module.exports = class Socket extends EventEmitter
 
         this._RequestID = -1
         this._RequestLength = -1
-        this._Buffer = Buffer.alloc(0)
+        this._RequestBuffer = Buffer.alloc(0)
 
         RateLimitHandler.Load(this)
 
@@ -31,48 +31,48 @@ module.exports = class Socket extends EventEmitter
         {
             Misc.Analyze('ClientData', { IP: this._Address, Length: BufferCurrent.length })
 
-            let NewBuffer = Buffer.alloc(BufferCurrent.length + this._Buffer.length)
+            let NewBuffer = Buffer.alloc(BufferCurrent.length + this._RequestBuffer.length)
 
-            this._Buffer.copy(NewBuffer)
+            this._RequestBuffer.copy(NewBuffer)
 
-            BufferCurrent.copy(NewBuffer, this._Buffer.length)
+            BufferCurrent.copy(NewBuffer, this._RequestBuffer.length)
 
-            this._Buffer = NewBuffer
+            this._RequestBuffer = NewBuffer
 
             NewBuffer = null
 
-            if (this._Buffer.length <= HEADER_SIZE)
+            if (this._RequestBuffer.length <= HEADER_SIZE)
                 return
 
             if (this._RequestLength === -1)
             {
-                this._RequestID = this._Buffer.readUInt32LE(6)
-                this._RequestLength = this._Buffer.readUInt32LE(2)
+                this._RequestID = this._RequestBuffer.readUInt32LE(6)
+                this._RequestLength = this._RequestBuffer.readUInt32LE(2)
             }
 
-            while (this._Buffer.length >= this._RequestLength)
+            while (this._RequestBuffer.length >= this._RequestLength)
             {
                 let RequestBuffer = Buffer.alloc(this._RequestLength)
 
-                this._Buffer.copy(RequestBuffer)
+                this._RequestBuffer.copy(RequestBuffer)
                 this.OnMessage(RequestBuffer)
 
-                NewBuffer = Buffer.alloc(this._Buffer.length - this._RequestLength)
+                NewBuffer = Buffer.alloc(this._RequestBuffer.length - this._RequestLength)
 
-                this._Buffer.copy(NewBuffer, 0, this._RequestLength)
-                this._Buffer = NewBuffer
+                this._RequestBuffer.copy(NewBuffer, 0, this._RequestLength)
+                this._RequestBuffer = NewBuffer
                 this._RequestLength = -1
                 this._RequestID = -1
 
                 NewBuffer = null
 
-                if (this._Buffer.length <= HEADER_SIZE)
+                if (this._RequestBuffer.length <= HEADER_SIZE)
                     return
 
                 if (this._RequestLength === -1)
                 {
-                    this._RequestID = this._Buffer.readUInt32LE(6)
-                    this._RequestLength = this._Buffer.readUInt32LE(2)
+                    this._RequestID = this._RequestBuffer.readUInt32LE(6)
+                    this._RequestLength = this._RequestBuffer.readUInt32LE(2)
                 }
             }
         })
