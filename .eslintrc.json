@@ -1,5 +1,5 @@
 {
-    "globals": { "Config": true, "DB": true, "MongoID": true },
+    "globals": { "DB": true, "MongoID": true },
     "extends": "standard",
     "rules":
     {

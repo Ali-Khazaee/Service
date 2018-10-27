@@ -17,7 +17,7 @@ const ServerList =
     { ID: 1, URL: process.env.SERVER_1, Key: process.env.SERVER_1_KEY }
 ]
 
-module.exports.Socket = class Socket extends EventEmitter
+module.exports = class Socket extends EventEmitter
 {
     constructor(Client)
     {
@@ -110,7 +110,7 @@ module.exports.Socket = class Socket extends EventEmitter
     }
 }
 
-module.exports = (ServerID, ClientID, PacketID, Message) =>
+module.exports.Push = (ServerID, ClientID, PacketID, Message) =>
 {
     return new Promise((resolve) =>
     {

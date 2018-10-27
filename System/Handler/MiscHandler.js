@@ -6,7 +6,7 @@ const Winston = require('winston')
 const Logger = Winston.createLogger(
 {
     format: Winston.format.combine(Winston.format.printf((info) => info.message.replace(/\n|\r/g, '').replace(/\s+/g, ' ').trim())),
-    transports: [ new Winston.transports.Console({ json: false }), new Winston.transports.File({ filename: './Storage/AppDebug.log' }) ]
+    transports: [ new Winston.transports.Console({ json: false }) ]
 })
 
 module.exports.Analyze = (Tag, Message = { }) =>
@@ -20,7 +20,7 @@ module.exports.Analyze = (Tag, Message = { }) =>
 
 module.exports.IsUndefined = (Value) =>
 {
-    if (typeof Value === 'undefined' || Value === undefined || Value == null || Value === null)
+    if (typeof Value === 'undefined')
         return true
 
     if (typeof Value === 'string' && Value.length > 0)
@@ -36,6 +36,15 @@ module.exports.IsUndefined = (Value) =>
         return true
 
     if (typeof Value === 'function')
+        return false
+
+    if (typeof Value === 'boolean')
+        return false
+
+    if (Value === undefined || Value === null || Value == null)
+        return true
+
+    if (typeof Value === 'number' && !isNaN(Value) && !isFinite(Value))
         return false
 
     if (Value.toString === Object.prototype.toString)
@@ -58,7 +67,7 @@ module.exports.IsUndefined = (Value) =>
         }
     }
 
-    return isNaN(Value)
+    return true
 }
 
 module.exports.IsDefined = (Value) =>
@@ -103,10 +112,21 @@ module.exports.IsValidJSON = (Message) =>
     return !this.IsInvalidJSON(Message)
 }
 
-module.exports.RandomString = (Count) =>
+module.exports.RandomWord = (Count) =>
 {
     let Result = ''
     const Possible = 'abcdefghijklmnopqrstuvwxyz'
+
+    for (let I = 0; I < Count; I++)
+        Result += Possible.charAt(Math.floor(Math.random() * Possible.length))
+
+    return Result
+}
+
+module.exports.RandomString = (Count) =>
+{
+    let Result = ''
+    const Possible = 'abcdefghijklmnopqrstuvwxyz0123456789'
 
     for (let I = 0; I < Count; I++)
         Result += Possible.charAt(Math.floor(Math.random() * Possible.length))
@@ -127,21 +147,22 @@ module.exports.RandomNumber = (Count) =>
 
 module.exports.IsInvalidID = (ID) =>
 {
-    if (MongoID.isValid(ID))
-        return false
-
-    ID = String(ID)
-    let Valid = false
-
-    if (ID.length === 12 || ID.length === 24)
-        Valid = /^[0-9a-fA-F]+$/.test(ID)
-
-    return !Valid
+    return !MongoID.isValid(ID)
 }
 
 module.exports.IsValidID = (ID) =>
 {
-    return !this.IsInvalidID(ID)
+    return MongoID.isValid(ID)
+}
+
+module.exports.Size = (Value) =>
+{
+    if (Value === 0)
+        return '0 B'
+
+    const I = Math.floor(Math.log(Value) / Math.log(1024))
+
+    return parseFloat((Value / Math.pow(1024, I)).toFixed(2)) + ' ' + [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ][I]
 }
 
 module.exports.SendEmail = (Receiver, Subject, Content) =>
@@ -162,7 +183,7 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
 
     Transporter.sendMail({ from: `"${process.env.EMAIL_SENDER}" <${process.env.EMAIL_FROM}>`, to: Receiver, subject: Subject, html: Content }, (Error, Info) =>
     {
-        if (Error)
+        if (this.IsUndefined(Error))
         {
             this.Analyze('MailError', { Error: Error })
             return
@@ -170,14 +191,4 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
 
         this.Analyze('MailSuccess', { Info: Info })
     })
-}
-
-module.exports.Size = (Value) =>
-{
-    if (Value === 0)
-        return '0 B'
-
-    const I = Math.floor(Math.log(Value) / Math.log(1024))
-
-    return parseFloat((Value / Math.pow(1024, I)).toFixed(2)) + ' ' + [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' ][I]
 }

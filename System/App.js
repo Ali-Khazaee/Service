@@ -2,22 +2,13 @@
 
 require('dotenv').config()
 
-global.Config =
-{
-    SERVER_STORAGE: `${__dirname}/../Storage`,
-    SERVER_STORAGE_TEMP: `${__dirname}/../Storage/Temp`,
-
-    PATTERN_EMAIL: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/,
-    PATTERN_USERNAME: /^(?![^a-z])(?!.*([_.])\1)[\w.]*[a-z]$/,
-    PATTERN_IR_PHONE: /^\+989\d{9}$/
-}
-
 const TLS = require('tls')
 const FileSystem = require('fs')
 const MongoDB = require('mongodb')
 
 const Push = require('./Handler/PushHandler')
 const Misc = require('./Handler/MiscHandler')
+const Config = require('./Handler/ConfigHandler')
 const Socket = require('./Handler/SocketHandler')
 
 process.on('uncaughtException', (Error) => Misc.Analyze('AppUncaughtException', { Error: Error }))
@@ -48,10 +39,10 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 
     const ServerSocketOption =
     {
-        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketPublicKey.pem`),
-        dhparam: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/SocketDHKey.pem`),
-        ciphers: 'ECDHE-ECDSA-AES128-GCM-SHA256',
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}SocketPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}SocketPublicKey.pem`),
+        dhparam: FileSystem.readFileSync(`${Config.SERVER_STORAGE}SocketDHKey.pem`),
+        ciphers: 'ECDHE-ECDSA-AES256-GCM-SHA256',
         honorCipherOrder: true
     }
 
@@ -71,7 +62,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 
     ServerSocket.on('error', (Error) => Misc.Analyze('ServerSocketError', { Error: Error }))
 
-    ServerSocket.listen(process.env.CORE_CLIENT_PORT, '0.0.0.0', () => Misc.Analyze('ServerSocketListen'))
+    ServerSocket.listen(process.env.CORE_SOCKET_PORT, '0.0.0.0', () => Misc.Analyze('ServerSocketListen'))
 
     //
     // Server Push
@@ -79,8 +70,8 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 
     const ServerPushOption =
     {
-        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/PushPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}/PushPublicKey.pem`)
+        key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushPrivateKey.pem`),
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushPublicKey.pem`)
     }
 
     const ServerPush = TLS.createServer(ServerPushOption, (Sock) =>

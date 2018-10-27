@@ -10,7 +10,7 @@ module.exports = (Count, Time) =>
     return (Message, Next) =>
     {
         const TimeCurrent = Misc.Time()
-        const Key = `${(Misc.IsDefined(Message[Type.Client].__Owner) ? Message[Type.Client].__Owner : Message[Type.Client]._Address)}`
+        const Key = Misc.IsUndefined(Message[Type.Client].__Owner) ? Message[Type.Client]._Address : Message[Type.Client].__Owner
 
         if (RateLimitList.has(Key))
         {
@@ -44,19 +44,19 @@ module.exports = (Count, Time) =>
     }
 }
 
-module.exports.Save = (Client) =>
+module.exports.Save = (Sock) =>
 {
-    const Key = `${(Misc.IsDefined(Client.__Owner) ? Client.__Owner : Client._Address)}`
+    const Key = Misc.IsUndefined(Sock.__Owner) ? Sock._Address : Sock.__Owner
 
-    if (RateLimitList.has(Key))
+    if (!RateLimitList.has(Key))
         return
 
     DB.collection('ratelimit').updateOne({ Key: Key }, { $set: { Key: Key, Data: JSON.stringify([...RateLimitList.get(Key)]) } }, { upsert: true })
 }
 
-module.exports.Load = (Client) =>
+module.exports.Init = (Sock) =>
 {
-    const Key = `${(Misc.IsDefined(Client.__Owner) ? Client.__Owner : Client._Address)}`
+    const Key = Misc.IsUndefined(Sock.__Owner) ? Sock._Address : Sock.__Owner
 
     DB.collection('ratelimit').find({ Key: Key }).limit(1).project({ _id: 0, Data: 1 }).toArray((Error, Result) =>
     {

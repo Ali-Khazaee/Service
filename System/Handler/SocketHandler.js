@@ -4,28 +4,28 @@ const EventEmitter = require('events')
 
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
-const ClientHandler = require('./ClientHandler')
-const RateLimitHandler = require('./RateLimitHandler')
 
 // PacketID + RequestLength + RequestID
 const HEADER_SIZE = 2 + 4 + 4
 
+const RateLimitList = new Map()
+
 module.exports = class Socket extends EventEmitter
 {
-    constructor(Client)
+    constructor(Sock)
     {
         super()
 
-        this._Socket = Client
-        this._Socket.setTimeout(900000)
+        this._Socket = Sock
+        this._Socket.setTimeout(300000)
         this._ID = Misc.RandomString(15)
-        this._Address = Client.remoteAddress
+        this._Address = Sock.remoteAddress
 
         this._RequestID = -1
         this._RequestLength = -1
         this._RequestBuffer = Buffer.alloc(0)
 
-        RateLimitHandler.Load(this)
+        this.RateLimitInit()
 
         this._Socket.on('data', (BufferCurrent) =>
         {
@@ -93,6 +93,36 @@ module.exports = class Socket extends EventEmitter
         })
 
         this._Socket.on('error', (Error) => Misc.Analyze('ClientError', { IP: this._Address, Error: Error }))
+    }
+
+    RateLimitInit()
+    {
+        DB.collection('ratelimit').find({ Key: this._Address }).limit(1).project({ _id: 0, Data: 1 }).toArray((Error, Result) =>
+        {
+            if (Misc.IsDefined(Error))
+            {
+                Misc.Analyze('DBError', { Tag: 'RateLimitInit', Error: Error })
+                return
+            }
+
+            if (Misc.IsUndefined(Result[0]))
+                return
+
+            try
+            {
+                const Data = JSON.parse(Result[0].Data)
+                const Temp = new Map()
+
+                for (let Key of Object.keys(Data))
+                    Temp.set(Key, Data[Key])
+
+                RateLimitList.set(this._Address, Temp)
+            }
+            catch (Exception)
+            {
+                Misc.Analyze('RateLimitInit', { Error: Exception })
+            }
+        })
     }
 
     On(...Args)
