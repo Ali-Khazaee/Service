@@ -56,6 +56,7 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         require('./Api/Authentication')(Client)
         require('./Api/Messenger')(Client)
         require('./Api/Profile')(Client)
+        require('./Api/Social')(Client)
     })
 
     ServerSocket.on('close', () => Misc.Analyze('ServerSocketClose'))
