@@ -24,11 +24,11 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
 {
     if (Misc.IsDefined(Error))
     {
-        Misc.Analyze('DBError', { Tag: 'Initial', Error: Error })
+        Misc.Analyze('DataBaseError', { Tag: 'Initial', Error: Error })
         return
     }
 
-    Misc.Analyze('DBConnected')
+    Misc.Analyze('DataBaseConnected', { Server: process.env.NODE_ID })
 
     global.MongoID = MongoDB.ObjectID
     global.DB = DataBase.db(process.env.DATABASE_NAME)
@@ -51,12 +51,6 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         const Client = new Socket(Sock)
 
         Misc.Analyze('SocketConnected', { IP: Client._Address })
-
-        require('./Api/General')(Client)
-        require('./Api/Authentication')(Client)
-        require('./Api/Messenger')(Client)
-        require('./Api/Profile')(Client)
-        require('./Api/Social')(Client)
     })
 
     ServerSocket.on('close', () => Misc.Analyze('ServerSocketClose'))
@@ -72,7 +66,10 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
     const ServerPushOption =
     {
         key: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushPrivateKey.pem`),
-        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushPublicKey.pem`)
+        cert: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushPublicKey.pem`),
+        dhparam: FileSystem.readFileSync(`${Config.SERVER_STORAGE}PushDHKey.pem`),
+        ciphers: 'ECDHE-ECDSA-AES256-GCM-SHA256',
+        honorCipherOrder: true
     }
 
     const ServerPush = TLS.createServer(ServerPushOption, (Sock) =>
@@ -80,8 +77,6 @@ MongoDB.MongoClient.connect(`mongodb://${process.env.DATABASE_USERNAME}:${proces
         const Client = new Push(Sock)
 
         Misc.Analyze('PushConnected', { IP: Client._Address })
-
-        require('./Api/Push')(Client)
     })
 
     ServerPush.on('close', () => Misc.Analyze('ServerPushClose'))

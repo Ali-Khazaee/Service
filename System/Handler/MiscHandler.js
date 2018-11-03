@@ -192,3 +192,15 @@ module.exports.SendEmail = (Receiver, Subject, Content) =>
         this.Analyze('MailSuccess', { Info: Info })
     })
 }
+
+module.exports.IsInvaildJSON = (Message) =>
+{
+    try
+    {
+        return JSON.parse(Message)
+    }
+    catch (Exception)
+    {
+        return 'INVALID'
+    }
+}

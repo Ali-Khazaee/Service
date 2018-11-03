@@ -1,25 +1,23 @@
 'use strict'
 
-const EventEmitter = require('events')
+const Crypto = require('crypto')
 
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
 
-// PacketID + RequestLength + RequestID
-const HEADER_SIZE = 2 + 4 + 4
+const ALGORITHM = 'aes256'
+const HEADER_SIZE = 2 + 4 + 4 // PacketID + RequestLength + RequestID
 
-const RateLimitList = new Map()
-
-module.exports = class Socket extends EventEmitter
+module.exports = class Socket
 {
     constructor(Sock)
     {
-        super()
-
         this._Socket = Sock
         this._Socket.setTimeout(300000)
         this._ID = Misc.RandomString(15)
         this._Address = Sock.remoteAddress
+
+        this._SharedSecret = undefined
 
         this._RequestID = -1
         this._RequestLength = -1
@@ -29,7 +27,7 @@ module.exports = class Socket extends EventEmitter
 
         this._Socket.on('data', (BufferCurrent) =>
         {
-            Misc.Analyze('ClientData', { IP: this._Address, Length: BufferCurrent.length })
+            Misc.Analyze('SocketData', { IP: this._Address, Length: BufferCurrent.length })
 
             let NewBuffer = Buffer.alloc(BufferCurrent.length + this._RequestBuffer.length)
 
@@ -80,81 +78,30 @@ module.exports = class Socket extends EventEmitter
         this._Socket.on('close', (HasError) =>
         {
             ClientHandler.Remove(this._ID)
-            RateLimitHandler.Save(this)
 
-            Misc.Analyze('ClientClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
+            Misc.Analyze('SocketClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
 
         this._Socket.on('timeout', () =>
         {
             this._Socket.destroy()
 
-            Misc.Analyze('ClientTimeout', { IP: this._Address })
+            Misc.Analyze('SocketTimeout', { IP: this._Address })
         })
 
-        this._Socket.on('error', (Error) => Misc.Analyze('ClientError', { IP: this._Address, Error: Error }))
-    }
-
-    RateLimitInit()
-    {
-        DB.collection('ratelimit').find({ Key: this._Address }).limit(1).project({ _id: 0, Data: 1 }).toArray((Error, Result) =>
-        {
-            if (Misc.IsDefined(Error))
-            {
-                Misc.Analyze('DBError', { Tag: 'RateLimitInit', Error: Error })
-                return
-            }
-
-            if (Misc.IsUndefined(Result[0]))
-                return
-
-            try
-            {
-                const Data = JSON.parse(Result[0].Data)
-                const Temp = new Map()
-
-                for (let Key of Object.keys(Data))
-                    Temp.set(Key, Data[Key])
-
-                RateLimitList.set(this._Address, Temp)
-            }
-            catch (Exception)
-            {
-                Misc.Analyze('RateLimitInit', { Error: Exception })
-            }
-        })
-    }
-
-    On(...Args)
-    {
-        let Message
-        let Arg = [ ]
-
-        const Next = () =>
-        {
-            if (Arg.length === 1)
-                Arg.shift().apply(this, Message)
-            else if (Arg.length > 1)
-                Arg.shift().call(this, Message, Next)
-        }
-
-        super['on'](Args.shift(), (ID, PacketMessage, PacketID) =>
-        {
-            Message = [ ]
-            Message.push(ID)
-            Message.push(PacketMessage)
-            Message.push(PacketID)
-            Message.push(this)
-
-            Arg = Args.slice(0)
-
-            Next()
-        })
+        this._Socket.on('error', (Error) => Misc.Analyze('SocketError', { IP: this._Address, Error: Error }))
     }
 
     Send(Packet, ID, Message)
     {
         Message = JSON.stringify(Message)
+
+        if (Misc.IsDefined(this._SharedSecret))
+        {
+            const Cipher = Crypto.createCipher(ALGORITHM, this._SharedSecret)
+
+            Message = Cipher.update(Message, 'utf8', 'base64') + Cipher.final('base64')
+        }
 
         const BufferMessage = Buffer.alloc(HEADER_SIZE + Message.length)
 
@@ -177,14 +124,99 @@ module.exports = class Socket extends EventEmitter
             return
         }
 
-        try
+        let Message = BufferMessage.toString('utf8', HEADER_SIZE)
+
+        if (Misc.IsDefined(this._SharedSecret))
         {
-            this.emit(PacketID, ID, JSON.parse(BufferMessage.toString('utf8', HEADER_SIZE)), PacketID)
+            const Decipher = Crypto.createDecipher(ALGORITHM, this._SharedSecret)
+
+            Message = Decipher.update(Message, 'base64', 'utf8') + Decipher.final()
         }
-        catch (Exception)
+
+        const MessageJSON = Misc.IsInvaildJSON(Message)
+
+        if (MessageJSON === 'INVALID')
         {
             this.Send(PacketID, ID, { Result: -4 })
-            Misc.Analyze('SocketHandler-OnMessage', { Error: Exception })
+            return
+        }
+
+        const Request = this.Request(PacketID)
+
+        this.RateLimit(PacketID, Request.Count, Request.Time).then((Exceed) =>
+        {
+            if (Exceed)
+            {
+                this.Send(PacketID, ID, { Result: -2 })
+                return
+            }
+
+            Request.Execute(ID, MessageJSON)
+        })
+    }
+
+    RateLimit(PacketID, Count, Time)
+    {
+        return new Promise((resolve) =>
+        {
+            const TimeCurrent = Misc.Time()
+            const Key = Misc.IsUndefined(this.__Owner) ? this._Address : this.__Owner
+
+            DB.collection('ratelimit').find({ $and: [ { Key: Key }, { ID: PacketID } ] }).count(1).toArray((Error, Result) =>
+            {
+                if (Misc.IsDefined(Error))
+                {
+                    Misc.Analyze('DataBaseError', { Tag: 'RateLimit', Error: Error })
+                    resolve()
+                    return
+                }
+
+                if (Misc.IsUndefined(Result[0]))
+                {
+                    DB.collection('ratelimit').insertOne({ Key: Key, ID: PacketID, Count: 1, Time: TimeCurrent + Time }, (Error2) =>
+                    {
+                        if (Misc.IsDefined(Error2))
+                            Misc.Analyze('DataBaseError', { Tag: 'RateLimit-Ins', ID: PacketID, Error: Error2 })
+                    })
+
+                    resolve()
+                    return
+                }
+
+                if (Result[0].Time < TimeCurrent)
+                {
+                    DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $set: { Count: 1, Time: TimeCurrent + Time } }, (Error3) =>
+                    {
+                        if (Misc.IsDefined(Error3))
+                            Misc.Analyze('ratelimit', { Tag: 'RateLimit-Set', ID: PacketID, Error: Error3 })
+                    })
+
+                    resolve()
+                    return
+                }
+
+                if (Result[0].Count <= Count)
+                {
+                    DB.collection('ratelimit').updateOne({ _id: Result[0]._id }, { $inc: { Count: 1 } }, (Error4) =>
+                    {
+                        if (Misc.IsDefined(Error4))
+                            Misc.Analyze('DataBaseError', { Tag: 'RateLimit-Inc', ID: PacketID, Error: Error4 })
+                    })
+
+                    resolve()
+                    return
+                }
+
+                resolve(true)
+            })
+        })
+    }
+
+    Request(PacketID)
+    {
+        switch (PacketID)
+        {
+            case Packet.PhoneSignUp: return { Count: 1, Time: 1000, Execute: 0 }
         }
     }
 
@@ -203,6 +235,7 @@ module.exports = class Socket extends EventEmitter
             case Packet.GoogleSignIn:
             case Packet.GoogleSignInVerify:
             case Packet.Authentication:
+            case Packet.ExChange:
                 return false
         }
 
