@@ -10,13 +10,6 @@ module.exports =
         EmailSignIn: 3
     },
 
-    EventHandler:
-    {
-        ID: 0,
-        Packet: 2,
-        Client: 3
-    },
-
     Message:
     {
         TEXT: 0, // Implemented

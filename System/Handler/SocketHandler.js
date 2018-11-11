@@ -5,6 +5,8 @@ const Crypto = require('crypto')
 const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
 
+const General = require('../Api/General')
+
 const ALGORITHM = 'aes256'
 const HEADER_SIZE = 2 + 4 + 4 // PacketID + RequestLength + RequestID
 
@@ -17,7 +19,7 @@ module.exports = class Socket
         this._ID = Misc.RandomString(15)
         this._Address = Sock.remoteAddress
 
-        this._SharedSecret = undefined
+        this.__SharedSecret = undefined
 
         this._RequestID = -1
         this._RequestLength = -1
@@ -77,8 +79,6 @@ module.exports = class Socket
 
         this._Socket.on('close', (HasError) =>
         {
-            ClientHandler.Remove(this._ID)
-
             Misc.Analyze('SocketClose', { IP: this._Address, HasError: HasError ? 1 : 0 })
         })
 
@@ -96,9 +96,9 @@ module.exports = class Socket
     {
         Message = JSON.stringify(Message)
 
-        if (Misc.IsDefined(this._SharedSecret))
+        if (Misc.IsDefined(this.__SharedSecret))
         {
-            const Cipher = Crypto.createCipher(ALGORITHM, this._SharedSecret)
+            const Cipher = Crypto.createCipher(ALGORITHM, this.__SharedSecret)
 
             Message = Cipher.update(Message, 'utf8', 'base64') + Cipher.final('base64')
         }
@@ -126,9 +126,9 @@ module.exports = class Socket
 
         let Message = BufferMessage.toString('utf8', HEADER_SIZE)
 
-        if (Misc.IsDefined(this._SharedSecret))
+        if (Misc.IsDefined(this.__SharedSecret))
         {
-            const Decipher = Crypto.createDecipher(ALGORITHM, this._SharedSecret)
+            const Decipher = Crypto.createDecipher(ALGORITHM, this.__SharedSecret)
 
             Message = Decipher.update(Message, 'base64', 'utf8') + Decipher.final()
         }
@@ -151,7 +151,7 @@ module.exports = class Socket
                 return
             }
 
-            Request.Execute(ID, MessageJSON)
+            Request.Execute(this, ID, MessageJSON)
         })
     }
 
@@ -216,7 +216,9 @@ module.exports = class Socket
     {
         switch (PacketID)
         {
-            case Packet.PhoneSignUp: return { Count: 1, Time: 1000, Execute: 0 }
+            case Packet.Username: /***/ return { Count: 1, Time: 1000, Execute: () => General.Username() }
+            case Packet.Authentication: return { Count: 1, Time: 1000, Execute: () => General.Authentication() }
+            case Packet.ExChange: /***/ return { Count: 1, Time: 1000, Execute: () => General.ExChange() }
         }
     }
 
