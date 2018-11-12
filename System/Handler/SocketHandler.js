@@ -6,6 +6,7 @@ const Misc = require('./MiscHandler')
 const Packet = require('../Model/Packet')
 
 const General = require('../Api/General')
+const Messenger = require('../Api/Messenger')
 
 const ALGORITHM = 'aes256'
 const HEADER_SIZE = 2 + 4 + 4 // PacketID + RequestLength + RequestID
@@ -216,9 +217,13 @@ module.exports = class Socket
     {
         switch (PacketID)
         {
-            case Packet.Username: /***/ return { Count: 1, Time: 1000, Execute: () => General.Username() }
-            case Packet.Authentication: return { Count: 1, Time: 1000, Execute: () => General.Authentication() }
-            case Packet.ExChange: /***/ return { Count: 1, Time: 1000, Execute: () => General.ExChange() }
+            // General
+            case Packet.Username: /***/ return { Count: 1000, Time: 1, Execute: () => General.Username() }
+            case Packet.Authentication: return { Count: 1000, Time: 1, Execute: () => General.Authentication() }
+            case Packet.ExChange: /***/ return { Count: 1000, Time: 1, Execute: () => General.ExChange() }
+
+            // Messenger
+            case Packet.PersonMessageSend: return { Count: 1000, Time: 1, Execute: () => Messenger.PersonMessageSend() }
         }
     }
 

@@ -2,10 +2,75 @@
 
 const Packet = require('../Model/Packet')
 const Misc = require('../Handler/MiscHandler')
-const RateLimit = require('../Handler/RateLimitHandler')
 const MessageType = require('../Model/DataType').Message
-const ClientHandler = require('../Handler/ClientHandler')
 
+/**
+ * @Packet PersonMessageSend
+ *
+ * @Description Ersal e Message Be Shakhs
+ *
+ * @Param {string} To
+ * @Param {string} Message
+ * @Param {string} ReplyID - Optional ( Age Ye Messageio Reply Karde Bashe ID e On Message e )
+ *
+ * Result: 1 >> To ( Undefined, Invalid )
+ * Result: 2 >> Message ( Undefined )
+ * Result: 3 >> To ( Doesn't Exist )
+ *
+ * @Return: ID: ID e Message
+ *          T: Zaman e Ersal e Message
+ **/
+module.exports.PersonMessageSend = (Client, ID, Message) =>
+{
+    if (Misc.IsUndefined(Message.To) || Misc.IsInvalidID(Message.To))
+        return Client.Send(Packet.PersonMessageSend, ID, { Result: 1 })
+
+    if (Misc.IsUndefined(Message.Message))
+        return Client.Send(Packet.PersonMessageSend, ID, { Result: 2 })
+
+    if (Message.Message.length > 4096)
+        Message.Message = Message.Message.substring(0, 4096)
+
+    Message.To = MongoID(Message.To)
+
+    DB.collection('account').find({ _id: Message.To }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
+    {
+        if (Misc.IsDefined(Error))
+        {
+            Misc.Analyze('DataBaseError', { Tag: Packet.PersonMessageSend, Error: Error })
+            Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
+            return
+        }
+
+        if (Misc.IsUndefined(Result[0]))
+        {
+            Client.Send(Packet.PersonMessageSend, ID, { Result: 3 })
+            return
+        }
+
+        const Time = Misc.TimeMili()
+        const DataMessage = { From: MongoID(Client.__Owner), To: Message.To, Message: Message.Message, Type: MessageType.TEXT, T: Time }
+
+        if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
+            DataMessage.Reply = Message.ReplyID
+
+        DB.collection('message').insertOne(DataMessage, (Error2, Result2) =>
+        {
+            if (Misc.IsDefined(Error2))
+            {
+                Misc.Analyze('DataBaseError', { Tag: Packet.PersonMessageSend, Part: '2', Error: Error2 })
+                Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
+                return
+            }
+
+            Client.Send(Packet.PersonMessageSend, ID, { Result: 0, ID: Result2.insertedId, T: Time })
+
+            Misc.Analyze('Request', { ID: Packet.PersonMessageSend, IP: Client._Address })
+        })
+    })
+}
+
+/*
 module.exports = (Client) =>
 {
     /**
@@ -16,7 +81,7 @@ module.exports = (Client) =>
      * @Param {int} Skip - Optional
      *
      * @Return: Message: Object Array Az Person List
-     */
+     *
     Client.On(Packet.PersonList, RateLimit(120, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Skip) || typeof Message.Skip !== 'number')
@@ -37,76 +102,6 @@ module.exports = (Client) =>
     })
 
     /**
-     * @Packet PersonMessageSend
-     *
-     * @Description Ersal e Message Be Shakhs
-     *
-     * @Param {string} To
-     * @Param {string} Message
-     * @Param {string} ReplyID - Optional ( Age Ye Messageio Reply Karde Bashe ID e On Message e )
-     *
-     * Result: 1 >> To ( Undefined, Invalid )
-     * Result: 2 >> Message ( Undefined )
-     * Result: 3 >> To ( Doesn't Exist )
-     *
-     * @Return: ID: ID e Message
-     *          Time: Zaman e Message
-     */
-    Client.On(Packet.PersonMessageSend, RateLimit(240, 60), (ID, Message) =>
-    {
-        if (Misc.IsUndefined(Message.To) || Misc.IsInvalidID(Message.To))
-            return Client.Send(Packet.PersonMessageSend, ID, { Result: 1 })
-
-        if (Misc.IsUndefined(Message.Message))
-            return Client.Send(Packet.PersonMessageSend, ID, { Result: 2 })
-
-        if (Message.Message.length > 4096)
-            Message.Message = Message.Message.substring(0, 4096)
-
-        Message.To = MongoID(Message.To)
-
-        DB.collection('account').find({ _id: Message.To }).limit(1).project({ _id: 1 }).toArray((Error, Result) =>
-        {
-            if (Misc.IsDefined(Error))
-            {
-                Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error })
-                return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
-            }
-
-            if (Misc.IsUndefined(Result[0]))
-                return Client.Send(Packet.PersonMessageSend, ID, { Result: 3 })
-
-            const Time = Misc.TimeMili()
-            const DataMessage = { From: MongoID(Client.__Owner), To: Message.To, Message: Message.Message, Type: MessageType.TEXT, Time: Time }
-
-            if (Misc.IsDefined(Message.ReplyID) && Misc.IsValidID(Message.ReplyID))
-                DataMessage.Reply = Message.ReplyID
-
-            DB.collection('message').insertOne(DataMessage, (Error2, Result2) =>
-            {
-                if (Misc.IsDefined(Error2))
-                {
-                    Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error2 })
-                    return Client.Send(Packet.PersonMessageSend, ID, { Result: -1 })
-                }
-
-                Client.Send(Packet.PersonMessageSend, ID, { Result: 0, ID: Result2.insertedId, Time: Time })
-
-                ClientHandler.Push(Message.To, Packet.PersonMessageSend, ID, DataMessage, () =>
-                {
-                    DB.collection('message').updateOne({ _id: Result2.insertedId }, { $set: { Delivery: Time } }, (Error3) =>
-                    {
-                        if (Misc.IsDefined(Error3))
-                            Misc.Analyze('DBError', { Tag: Packet.PersonMessageSend, Error: Error3 })
-                    })
-                })
-
-                Misc.Analyze('Request', { ID: Packet.PersonMessageSend, IP: Client._Address })
-            })
-        })
-    })
-
-    /**
      * @Packet PersonMessageList
      *
      * @Description Gereftan e List e Akharin Message Ha
@@ -115,7 +110,7 @@ module.exports = (Client) =>
      * @Param {int} Skip - Optional
      *
      * Result: 1 >> Who ( Undefined, Invalid )
-     */
+     *
     Client.On(Packet.PersonMessageList, RateLimit(120, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
@@ -166,7 +161,7 @@ module.exports = (Client) =>
      * @Return:
      *     Delivery: Time e Deliver Shodan Message
      *     Seen: Time e Seen Shodan Message
-     */
+     *
     Client.On(Packet.PersonMessageInfo, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -205,7 +200,7 @@ module.exports = (Client) =>
      * @Param {string} Who
      *
      * Result: 1 >> Who ( Undefined, Invalid )
-     */
+     *
     Client.On(Packet.PersonMessageClear, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Who) || Misc.IsInvalidID(Message.Who))
@@ -236,7 +231,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Message doesn't exists
-     */
+     *
     Client.On(Packet.PersonMessageDelete, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -281,7 +276,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Message doesn't exists or already has been delivered
-     */
+     *
     Client.On(Packet.PersonMessageDelivery, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -330,7 +325,7 @@ module.exports = (Client) =>
      * Result: 2 >> Too Many Groups
      *
      * @Return: ID: ID e Group e
-     */
+     *
     Client.On(Packet.GroupCreate, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.Name) || Message.Name.length > 32)
@@ -379,7 +374,7 @@ module.exports = (Client) =>
      * @Param {string} ID
      *
      * Result: 1 >> ID ( Undefined, Invalid )
-     */
+     *
     Client.On(Packet.GroupDelete, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -443,7 +438,7 @@ module.exports = (Client) =>
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Name ( Undefined, GT: 32 )
      * Result: 3 >> Group dosen't exists / No rights
-     */
+     *
     Client.On(Packet.GroupRename, RateLimit(600, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -493,7 +488,7 @@ module.exports = (Client) =>
      * @Description Gereftane List e Goroh Ha Khod
      *
      * @Return Message: Array Object Az List Group Ha
-     */
+     *
     Client.On(Packet.GroupList, RateLimit(120, 60), (ID) =>
     {
         DB.collection('group').find({ $and: [ { Owner: MongoID(Client.__Owner) }, { Delete: { $exists: false } } ] }).project({ _id: 1 }).toArray((Error, Result) =>
@@ -524,7 +519,7 @@ module.exports = (Client) =>
      * Result: 4 >> Can't add yourself
      * Result: 5 >> Group Doesn't Exist | No Rights
      * Result: 6 >> Who Already In Group
-     */
+     *
     Client.On(Packet.GroupMemberAdd, RateLimit(200, 43200), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -618,7 +613,7 @@ module.exports = (Client) =>
      * Result: 3 >> Who Doesn't Exist
      * Result: 4 >> Can't remove yourself
      * Result: 5 >> Group Doesn't Exist | No Rights
-     */
+     *
     Client.On(Packet.GroupMemberRemove, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -702,7 +697,7 @@ module.exports = (Client) =>
      *
      * @Return: ID: ID e Message
      *          Time: Zaman e Message
-     */
+     *
     Client.On(Packet.GroupMessageSend, RateLimit(240, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -782,7 +777,7 @@ module.exports = (Client) =>
      * @Param {int} Skip - Optional
      *
      * Result: 1 >> ID ( Undefined, Invalid )
-     */
+     *
     Client.On(Packet.GroupMessageList, RateLimit(120, 60), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -833,7 +828,7 @@ module.exports = (Client) =>
      * @Return:
      *     Delivery: Time e Deliver Shodan Message
      *     Seen: Time e Seen Shodan Message
-     */
+     *
     Client.On(Packet.GroupMessageInfo, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -876,7 +871,7 @@ module.exports = (Client) =>
      * Result: 2 >> Group ( Undefined, Invalid )
      * Result: 3 >> Group doesn't exists
      * Result: 4 >> Message doesn't exists
-     */
+     *
     Client.On(Packet.GroupMessageDelete, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -981,7 +976,7 @@ module.exports = (Client) =>
      *
      * Result: 1 >> ID ( Undefined, Invalid )
      * Result: 2 >> Message doesn't exists or already has been delivered
-     */
+     *
     Client.On(Packet.GroupMessageDelivery, RateLimit(200, 300), (ID, Message) =>
     {
         if (Misc.IsUndefined(Message.ID) || Misc.IsInvalidID(Message.ID))
@@ -1019,3 +1014,4 @@ module.exports = (Client) =>
         })
     })
 }
+*/
